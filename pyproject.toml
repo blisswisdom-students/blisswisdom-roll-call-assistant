@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "blisswisdom-roll-call-assistant"
+version = "0.1.0"
+description = ""
+authors = ["Johann Chang <mr.changyuheng@gmail.com>"]
+license = "MPL-2.0"
+readme = "README.md"
+homepage = "https://github.com/changyuheng/blisswisdom-roll-call-assistant"
+repository = "https://github.com/changyuheng/blisswisdom-roll-call-assistant"
+packages = [
+    { include = "blisswisdom_roll_call_assistant_desktop", from = "packages" },
+    { include = "blisswisdom_roll_call_assistant_sdk", from = "packages" },
+]
+
+
+[tool.poetry.dependencies]
+python = "~3.11"
+PySide6 = "^6.4.3"
+selenium = "^4.8.3"
+webdriver-manager = "^3.8.5"
+
+[tool.poetry.group.dev.dependencies]
+pyinstaller = "^5.9.0"
+
+[tool.poetry.scripts]
+blisswisdom-roll-call-assistant-desktop = 'blisswisdom_roll_call_assistant_desktop.main:main'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

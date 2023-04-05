@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QApplication
 
 import blisswisdom_roll_call_assistant_sdk as sdk
 from . import ui
+from . import ui_model
 
 
 def main() -> int:
@@ -27,7 +28,7 @@ def main() -> int:
         main_window: ui.QMainWindowExt = ui_loader.load(ui_file)
         ui_file.close()
 
-    main_window.set_up(sdk.get_entry_file_path().parent / f'{sdk.PROG_NAME}.toml')
+    main_window.set_up(ui_model.MainWindowModel(sdk.get_entry_file_path().parent / f'{sdk.PROG_NAME}.toml'))
     sdk.get_logger(__package__).info('Showing the main window')
     main_window.show()
     res: int = app.exec_()

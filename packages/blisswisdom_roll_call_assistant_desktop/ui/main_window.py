@@ -14,8 +14,8 @@ class QMainWindowExt(QMainWindow):
         sdk.get_logger(__package__).info('Close issued')
         super().closeEvent(event)
 
-    def set_up(self, config_path: pathlib.Path) -> None:
-        self.main_window_model: ui_model.MainWindowModel = ui_model.MainWindowModel(config_path)
+    def set_up(self, model: ui_model.MainWindowModel) -> None:
+        self.main_window_model: ui_model.MainWindowModel = model
         self.main_window_model.add_on_changed_observer(self.on_in_progress_changed, 'in_progress')
 
         self.setWindowTitle(f'{sdk.PROG_NAME} {sdk.VERSION}')
@@ -71,7 +71,7 @@ class QMainWindowExt(QMainWindow):
     def set_edit_enabled(self, enabled: bool) -> None:
         self.account_line_edit.setEnabled(enabled)
         self.password_line_edit.setEnabled(enabled)
-        self.character_line_edit.setEnabled(enabled)
+        # self.character_line_edit.setEnabled(enabled)
         self.class_line_edit.setEnabled(enabled)
         self.attendance_urls_plain_text_edit.setEnabled(enabled)
         self.edit_push_button.setEnabled(not enabled)
@@ -111,15 +111,15 @@ class QMainWindowExt(QMainWindow):
 
     def on_start_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Start clicked')
-        self.main_window_model.in_progress = True
+        self.main_window_model.start()
 
     def on_stop_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Stop clicked')
-        self.main_window_model.in_progress = False
+        self.main_window_model.stop()
 
     def on_log_in_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Log in clicked')
-        self.main_window_model.in_progress = True
+        self.main_window_model.log_in()
 
     def on_help_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Help clicked')

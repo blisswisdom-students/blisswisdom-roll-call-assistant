@@ -3,7 +3,6 @@ import pathlib
 import sys
 from typing import Optional
 
-
 inited: bool = False
 
 

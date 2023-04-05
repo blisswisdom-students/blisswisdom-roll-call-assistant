@@ -1,5 +1,6 @@
 import importlib.resources
 import logging
+import logging.handlers
 import pathlib
 import sys
 
@@ -10,8 +11,25 @@ from PySide6.QtWidgets import QApplication
 from . import ui
 
 
+def init_logger() -> None:
+    logger: logging.Logger = logging.getLogger()
+    formatter: logging.Formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s')
+
+    handler: logging.Handler = logging.handlers.RotatingFileHandler(f'{__package__}.log', maxBytes=10**5, backupCount=1)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    logger.setLevel(logging.INFO)
+
+
 def main() -> int:
-    logging.basicConfig()
+    init_logger()
+
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app: QApplication = QApplication(sys.argv)
 
@@ -25,5 +43,9 @@ def main() -> int:
             raise RuntimeError(f"Cannot open {ui_path}: {ui_file.errorString()}")
         main_window: ui.QMainWindowExt = ui_loader.load(ui_file)
         ui_file.close()
+
+    logging.getLogger(__package__).info('Showing the main window')
     main_window.show()
-    return app.exec_()
+    res: int = app.exec_()
+    logging.getLogger(__package__).info('Exited from the main window')
+    return res

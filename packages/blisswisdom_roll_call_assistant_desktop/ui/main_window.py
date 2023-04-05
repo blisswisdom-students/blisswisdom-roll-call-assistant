@@ -1,5 +1,4 @@
 import importlib.resources
-import logging
 import pathlib
 import webbrowser
 
@@ -55,7 +54,7 @@ class QMainWindowExt(QMainWindow):
             self.banner_label.setPixmap(QPixmap(banner_path))
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        logging.getLogger(__package__).info('Close issued')
+        sdk.get_logger(__package__).info('Close issued')
         super().closeEvent(event)
 
     def set_edit_enabled(self, enabled: bool) -> None:
@@ -77,29 +76,29 @@ class QMainWindowExt(QMainWindow):
         self.log_in_push_button.setEnabled(not in_progress)
 
     def on_edit_push_button_clicked(self) -> None:
-        logging.getLogger(__package__).info('Edit clicked')
+        sdk.get_logger(__package__).info('Edit clicked')
         self.set_edit_enabled(True)
 
     def on_save_push_button_clicked(self) -> None:
-        logging.getLogger(__package__).info('Save clicked')
+        sdk.get_logger(__package__).info('Save clicked')
         self.set_edit_enabled(False)
 
     def on_cancel_push_button_clicked(self) -> None:
-        logging.getLogger(__package__).info('Cancel clicked')
+        sdk.get_logger(__package__).info('Cancel clicked')
         self.set_edit_enabled(False)
 
     def on_start_push_button_clicked(self) -> None:
-        logging.getLogger(__package__).info('Start clicked')
+        sdk.get_logger(__package__).info('Start clicked')
         self.set_in_progress(True)
 
     def on_stop_push_button_clicked(self) -> None:
-        logging.getLogger(__package__).info('Stop clicked')
+        sdk.get_logger(__package__).info('Stop clicked')
         self.set_in_progress(False)
 
     def on_log_in_push_button_clicked(self) -> None:
-        logging.getLogger(__package__).info('Log in clicked')
+        sdk.get_logger(__package__).info('Log in clicked')
         self.set_in_progress(True)
 
     def on_help_push_button_clicked(self) -> None:
-        logging.getLogger(__package__).info('Help clicked')
+        sdk.get_logger(__package__).info('Help clicked')
         webbrowser.open('https://github.com/changyuheng/blisswisdom-roll-call-assistant/issues')

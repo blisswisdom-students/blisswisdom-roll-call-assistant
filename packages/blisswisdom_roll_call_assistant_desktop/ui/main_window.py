@@ -2,7 +2,7 @@ import importlib.resources
 import pathlib
 import webbrowser
 
-from PySide6.QtGui import QCloseEvent, QIcon, QPixmap
+from PySide6.QtGui import QCloseEvent, QIcon, QPixmap, QTextCursor
 from PySide6.QtWidgets import QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QPushButton
 
 import blisswisdom_roll_call_assistant_sdk as sdk
@@ -139,4 +139,5 @@ class QMainWindowExt(QMainWindow):
         self.set_logging_in(value)
 
     def on_status_changed(self, value: str) -> None:
-        self.status_plain_text_edit.setPlainText(f'{self.status_plain_text_edit.toPlainText()}{value}\n')
+        self.status_plain_text_edit.moveCursor(QTextCursor.End)
+        self.status_plain_text_edit.insertPlainText(f'{value}\n')

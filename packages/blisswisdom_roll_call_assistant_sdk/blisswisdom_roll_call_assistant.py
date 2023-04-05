@@ -105,34 +105,32 @@ class SimpleBlissWisdomRollCallAssistant:
             shutil.rmtree(self.work_path, onerror=on_rm_error)
 
     def log_in(self) -> bool:
-        self.browser_driver.get(BlissWisdomRollCall.HOME_PAGE.value)
-
         try:
+            self.browser_driver.get(BlissWisdomRollCall.HOME_PAGE.value)
+
             WebDriverWait(self.browser_driver, 10).until(lambda d: BlissWisdomRollCallElementFinder.first_login_link(d))
-        except TimeoutException:
-            return False
 
-        BlissWisdomRollCallElementFinder.account_text_input(self.browser_driver).send_keys(self.config.account)
-        BlissWisdomRollCallElementFinder.password_text_input(self.browser_driver).send_keys(self.config.password)
+            BlissWisdomRollCallElementFinder.account_text_input(self.browser_driver).send_keys(self.config.account)
+            BlissWisdomRollCallElementFinder.password_text_input(self.browser_driver).send_keys(self.config.password)
 
-        img_base64: str = BlissWisdomRollCallElementFinder.captcha_image(self.browser_driver).get_attribute(
-            'src').removeprefix('data:image/png;base64,')
-        fd: int
-        f_path: str
-        (fd, f_path) = tempfile.mkstemp(suffix='.png')
-        os.write(fd, base64.b64decode(img_base64))
-        captcha: str = easyocr.Reader(['en'], gpu=False).readtext(f_path)[0][1]
-        get_logger(__package__).info(f'Captcha: {captcha}')
-        os.close(fd)
-        os.remove(f_path)
+            img_base64: str = BlissWisdomRollCallElementFinder.captcha_image(self.browser_driver).get_attribute(
+                'src').removeprefix('data:image/png;base64,')
+            fd: int
+            f_path: str
+            (fd, f_path) = tempfile.mkstemp(suffix='.png')
+            os.write(fd, base64.b64decode(img_base64))
+            captcha: str = easyocr.Reader(['en'], gpu=False).readtext(f_path)[0][1]
+            get_logger(__package__).info(f'Captcha: {captcha}')
+            os.close(fd)
+            os.remove(f_path)
 
-        BlissWisdomRollCallElementFinder.captcha_text_input(self.browser_driver).send_keys(captcha)
-        BlissWisdomRollCallElementFinder.login_button(self.browser_driver).click()
+            BlissWisdomRollCallElementFinder.captcha_text_input(self.browser_driver).send_keys(captcha)
+            BlissWisdomRollCallElementFinder.login_button(self.browser_driver).click()
 
-        try:
             WebDriverWait(self.browser_driver, 10).until(lambda d: BlissWisdomRollCallElementFinder.logout_button(d))
-        except TimeoutException:
-            return False
 
-        time.sleep(10)
-        return True
+            time.sleep(10)
+            return True
+        except Exception as e:
+            get_logger(__package__).exception(e)
+            return False

@@ -2,6 +2,8 @@
 
 ![screenshot](assets/screenshot.png)
 
+https://user-images.githubusercontent.com/1842626/230153870-c47287f2-41ca-44cb-9fd7-985562499b94.mp4
+
 * [Development](#development)
   + [Environment](#environment)
     - [Reference](#reference)

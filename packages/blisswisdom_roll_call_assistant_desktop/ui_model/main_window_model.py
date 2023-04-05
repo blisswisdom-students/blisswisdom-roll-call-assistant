@@ -1,9 +1,9 @@
 import io
 import pathlib
-import tomllib
 from typing import Optional
 
 import dacite
+import tomli
 from PySide6.QtCore import QThread
 
 import blisswisdom_roll_call_assistant_sdk as sdk
@@ -15,18 +15,21 @@ class MainWindowModel(BaseUIModel):
         super().__init__()
         self._qthread: Optional[QThread] = None
         self._in_progress: bool = False
+        self._logging_in: bool = False
+        self._status: str = ''
+        self.thread_result: bool = False
 
-        self._config: Optional[sdk.Config] = None
+        self.config: Optional[sdk.Config] = None
         self.config_path: pathlib.Path = config_path
         try:
             if self.config_path.exists():
                 f: io.FileIO
                 with open(self.config_path, 'rb') as f:
-                    self._config = dacite.from_dict(sdk.Config, tomllib.load(f))
+                    self.config = dacite.from_dict(sdk.Config, tomli.load(f))
         except Exception as e:
             sdk.get_logger(__package__).exception(e)
-        if not self._config:
-            self._config = sdk.Config('', '', '', '', list())
+        if not self.config:
+            self.config = sdk.Config('', '', '', '', list())
 
     @property
     def in_progress(self) -> bool:
@@ -37,77 +40,96 @@ class MainWindowModel(BaseUIModel):
         self._in_progress = value
 
     @property
+    def logging_in(self) -> bool:
+        return self._logging_in
+
+    @logging_in.setter
+    def logging_in(self, value: bool) -> None:
+        self._logging_in = value
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    @status.setter
+    def status(self, value: str) -> None:
+        self._status = value
+
+    @property
     def account(self) -> str:
-        return self._config.account
+        return self.config.account
 
     @account.setter
     def account(self, value: str) -> None:
-        self._config.account = value
+        self.config.account = value
 
     @property
     def password(self) -> str:
-        return self._config.password
+        return self.config.password
 
     @password.setter
     def password(self, value: str) -> None:
-        self._config.password = value
+        self.config.password = value
 
     @property
     def character(self) -> str:
-        return self._config.character
+        return self.config.character
 
     @character.setter
     def character(self, value: str) -> None:
-        self._config.character = value
+        self.config.character = value
 
     @property
     def class_(self) -> str:
-        return self._config.class_
+        return self.config.class_
 
     @class_.setter
     def class_(self, value: str) -> None:
-        self._config.class_ = value
+        self.config.class_ = value
 
     @property
     def attendance_urls(self) -> list[str]:
-        return self._config.attendance_urls
+        return self.config.attendance_urls
 
     @attendance_urls.setter
     def attendance_urls(self, value: list[str]) -> None:
-        self._config.attendance_urls = value
+        self.config.attendance_urls = value
 
     def save(self) -> None:
-        self._config.save(self.config_path)
+        self.config.save(self.config_path)
 
     def start(self) -> None:
         self.in_progress = True
-        try:
-            self._qthread = Start(self._config)
-            self._qthread.finished.connect(self.on_start_finish)
-            self._qthread.start()
-        except Exception as e:
-            sdk.get_logger(__package__).exception(e)
+        self.status = '開始匯入點名資料 ...'
+        self._qthread = Start(self)
+        self._qthread.finished.connect(self.on_start_finish)
+        self._qthread.start()
 
     def on_start_finish(self) -> None:
         self.in_progress = False
 
     def stop(self) -> None:
+        self.status = '停止匯入點名資料 ...'
         self._qthread.stop()
 
     def log_in(self) -> None:
-        self.in_progress = True
-        self._qthread = LogIn(self._config)
+        self.logging_in = True
+        self.status = '開始登入 ...'
+        self._qthread = LogIn(self)
         self._qthread.finished.connect(self.on_log_in_finish)
         self._qthread.start()
 
     def on_log_in_finish(self) -> None:
-        self.in_progress = False
+        self.logging_in = False
+        sdk.get_logger(__package__).info('Logged in' if self.thread_result else 'Failed to log in')
+        self.status = f'登入「{"成功" if self.thread_result else "失敗"}」'
 
 
 class Start(QThread):
-    def __init__(self, config: sdk.Config, *args, **kwargs) -> None:
+    def __init__(self, main_window_model: MainWindowModel, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.config: sdk.Config = config
+        self.main_window_model: MainWindowModel = main_window_model
+        self.config: sdk.Config = main_window_model.config
 
     def run(self) -> None:
         pass
@@ -117,12 +139,13 @@ class Start(QThread):
 
 
 class LogIn(QThread):
-    def __init__(self, config: sdk.Config, *args, **kwargs) -> None:
+    def __init__(self, main_window_model: MainWindowModel, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.config: sdk.Config = config
+        self.main_window_model: MainWindowModel = main_window_model
+        self.config: sdk.Config = main_window_model.config
 
     def run(self) -> None:
-        sdk.SimpleBlissWisdomRollCallAssistant(self.config).log_in()
+        self.main_window_model.thread_result = sdk.SimpleBlissWisdomRollCallAssistant(self.config).log_in()
 
     def stop(self) -> None:
         pass

@@ -29,6 +29,7 @@
 
 ```
 poetry install
+poetry run pip install numpy --upgrade
 ```
 
 ### Packaging

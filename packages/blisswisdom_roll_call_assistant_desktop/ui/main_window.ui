@@ -234,7 +234,7 @@
            </font>
           </property>
           <property name="text">
-           <string>▶️ 填寫點名資料</string>
+           <string>▶️ 開始匯入點名資料</string>
           </property>
          </widget>
         </item>
@@ -257,7 +257,7 @@
            </font>
           </property>
           <property name="text">
-           <string>⏹️ 停止填寫點名資料</string>
+           <string>⏹️ 停止匯入點名資料</string>
           </property>
          </widget>
         </item>

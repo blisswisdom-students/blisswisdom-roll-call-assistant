@@ -17,6 +17,8 @@ class QMainWindowExt(QMainWindow):
     def set_up(self, model: ui_model.MainWindowModel) -> None:
         self.main_window_model: ui_model.MainWindowModel = model
         self.main_window_model.add_on_changed_observer(self.on_in_progress_changed, 'in_progress')
+        self.main_window_model.add_on_changed_observer(self.on_logging_in_changed, 'logging_in')
+        self.main_window_model.add_on_changed_observer(self.on_status_changed, 'status')
 
         self.setWindowTitle(f'{sdk.PROG_NAME} {sdk.VERSION}')
 
@@ -86,6 +88,11 @@ class QMainWindowExt(QMainWindow):
         self.stop_push_button.setEnabled(in_progress)
         self.log_in_push_button.setEnabled(not in_progress)
 
+    def set_logging_in(self, in_progress: bool) -> None:
+        self.edit_push_button.setEnabled(not in_progress)
+        self.start_push_button.setEnabled(not in_progress)
+        self.log_in_push_button.setEnabled(not in_progress)
+
     def on_edit_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Edit clicked')
         self.set_edit_enabled(True)
@@ -127,3 +134,9 @@ class QMainWindowExt(QMainWindow):
 
     def on_in_progress_changed(self, value: bool) -> None:
         self.set_in_progress(value)
+
+    def on_logging_in_changed(self, value: bool) -> None:
+        self.set_logging_in(value)
+
+    def on_status_changed(self, value: str) -> None:
+        self.status_plain_text_edit.setPlainText(f'{self.status_plain_text_edit.toPlainText()}{value}\n')

@@ -18,7 +18,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="0" column="0">
-     <layout class="QGridLayout" name="gridLayout" rowstretch="2,1,2,0,0,0,2,1">
+     <layout class="QGridLayout" name="gridLayout" rowstretch="3,0,2,0,0,0,1,1">
       <item row="2" column="0" rowspan="3" colspan="2">
        <layout class="QGridLayout" name="gridLayout_3">
         <item row="2" column="0">
@@ -37,6 +37,9 @@
         </item>
         <item row="0" column="1">
          <widget class="QLineEdit" name="account_line_edit">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
             <horstretch>0</horstretch>
@@ -95,6 +98,9 @@
         </item>
         <item row="1" column="1">
          <widget class="QLineEdit" name="password_line_edit">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
             <horstretch>0</horstretch>
@@ -114,6 +120,9 @@
         </item>
         <item row="3" column="1">
          <widget class="QLineEdit" name="class_line_edit">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
             <horstretch>0</horstretch>
@@ -130,6 +139,9 @@
         </item>
         <item row="2" column="1">
          <widget class="QLineEdit" name="character_line_edit">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
             <horstretch>0</horstretch>
@@ -164,6 +176,9 @@
         </item>
         <item row="0" column="1">
          <widget class="QPlainTextEdit" name="attendance_urls_plain_text_edit">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
             <horstretch>0</horstretch>
@@ -204,9 +219,9 @@
       <item row="7" column="0" colspan="7">
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QPushButton" name="help_push_button">
+         <widget class="QPushButton" name="start_push_button">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Ignored">
+           <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -219,14 +234,37 @@
            </font>
           </property>
           <property name="text">
-           <string>❓ 回報問題或提問</string>
+           <string>▶️ 填寫點名資料</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="stop_push_button">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="font">
+           <font>
+            <family>Microsoft JhengHei UI</family>
+            <pointsize>14</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>⏹️ 停止填寫點名資料</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QPushButton" name="log_in_push_button">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Ignored">
+           <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -244,9 +282,9 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="stop_push_button">
+         <widget class="QPushButton" name="help_push_button">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Ignored">
+           <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -259,27 +297,7 @@
            </font>
           </property>
           <property name="text">
-           <string>❌ 停止填寫點名資料</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="start_push_button">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Ignored">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="font">
-           <font>
-            <family>Microsoft JhengHei UI</family>
-            <pointsize>14</pointsize>
-            <bold>true</bold>
-           </font>
-          </property>
-          <property name="text">
-           <string>📝 填寫點名資料</string>
+           <string>❓ 回報問題或提問</string>
           </property>
          </widget>
         </item>
@@ -287,10 +305,10 @@
       </item>
       <item row="5" column="0" rowspan="2" colspan="7">
        <layout class="QGridLayout" name="gridLayout_5">
-        <item row="0" column="1">
+        <item row="0" column="3">
          <widget class="QPlainTextEdit" name="status_plain_text_edit">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
+           <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -303,17 +321,69 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="status_label">
+        <item row="0" column="2">
+         <widget class="QPushButton" name="cancel_push_button">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="font">
            <font>
             <family>Microsoft JhengHei UI</family>
-            <pointsize>12</pointsize>
+            <pointsize>14</pointsize>
             <bold>true</bold>
            </font>
           </property>
           <property name="text">
-           <string>工作狀態：</string>
+           <string>❌ 取消</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QPushButton" name="save_push_button">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="font">
+           <font>
+            <family>Microsoft JhengHei UI</family>
+            <pointsize>14</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>💾 儲存</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QPushButton" name="edit_push_button">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="font">
+           <font>
+            <family>Microsoft JhengHei UI</family>
+            <pointsize>14</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>✏️ 編輯</string>
           </property>
          </widget>
         </item>
@@ -338,9 +408,6 @@
   <tabstop>character_line_edit</tabstop>
   <tabstop>class_line_edit</tabstop>
   <tabstop>attendance_urls_plain_text_edit</tabstop>
-  <tabstop>start_push_button</tabstop>
-  <tabstop>stop_push_button</tabstop>
-  <tabstop>log_in_push_button</tabstop>
   <tabstop>help_push_button</tabstop>
   <tabstop>status_plain_text_edit</tabstop>
  </tabstops>

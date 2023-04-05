@@ -15,6 +15,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.7, <3.12"
+dacite = "^1.8.0"
 PySide6 = "^6.5.0"
 selenium = "^4.8.3"
 tomli-w = "^1.0.0"

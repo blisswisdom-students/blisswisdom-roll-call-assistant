@@ -319,6 +319,9 @@
             <pointsize>12</pointsize>
            </font>
           </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
         <item row="0" column="2">

@@ -259,7 +259,7 @@
            </font>
           </property>
           <property name="text">
-           <string>❌ 停止填寫</string>
+           <string>❌ 停止填寫點名資料</string>
           </property>
          </widget>
         </item>

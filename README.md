@@ -20,8 +20,7 @@ https://user-images.githubusercontent.com/1842626/230153870-c47287f2-41ca-44cb-9
 1. [Python](https://www.python.org/) 3.11+
 2. [Poetry](https://python-poetry.org/)
 3. [PyCharm](https://www.jetbrains.com/pycharm/)
-4. [Qt for Python](https://www.qt.io/qt-for-python)
-5. [Git](https://git-scm.com/)
+4. [Git](https://git-scm.com/)
 
 #### Reference
 
@@ -46,6 +45,12 @@ poetry run pyinstaller --clean desktop.spec
 
 1. [Object-oriented programming](https://en.wikipedia.org/wiki/Object-oriented_programming)
 2. [Model–view–viewmodel](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel) (MVVM)
+
+### Key libraries
+
+1. [Qt for Python](https://www.qt.io/qt-for-python)
+2. [Selenium](https://www.selenium.dev/)
+3. [EasyOCR](https://github.com/JaidedAI/EasyOCR)
 
 ## License
 

@@ -119,7 +119,7 @@ class SimpleBlissWisdomRollCallAssistant:
             f_path: str
             (fd, f_path) = tempfile.mkstemp(suffix='.png')
             os.write(fd, base64.b64decode(img_base64))
-            captcha: str = easyocr.Reader(['en'], gpu=False).readtext(f_path)[0][1]
+            captcha: str = easyocr.Reader(['en'], gpu=False).readtext(f_path, allowlist ='0123456789')[0][1]
             get_logger(__package__).info(f'Captcha: {captcha}')
             os.close(fd)
             os.remove(f_path)

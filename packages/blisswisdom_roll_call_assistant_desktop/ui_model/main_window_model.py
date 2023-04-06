@@ -99,6 +99,10 @@ class MainWindowModel(BaseUIModel):
         self.config.save(self.config_path)
 
     def start(self) -> None:
+        if self._qthread:
+            sdk.get_logger(__package__).info('Another task is already running')
+            self.status = '另一項工作正在執行中'
+            return
         self.in_progress = True
         self.status = '開始匯入點名資料 ...'
         self._qthread = Start(self)
@@ -107,12 +111,17 @@ class MainWindowModel(BaseUIModel):
 
     def on_start_finish(self) -> None:
         self.in_progress = False
+        self._qthread = None
 
     def stop(self) -> None:
         self.status = '停止匯入點名資料 ...'
         self._qthread.stop()
 
     def log_in(self) -> None:
+        if self._qthread:
+            sdk.get_logger(__package__).info('Another task is already running')
+            self.status = '另一項工作正在執行中'
+            return
         self.logging_in = True
         self.status = '開始登入 ...'
         self._qthread = LogIn(self)
@@ -123,6 +132,7 @@ class MainWindowModel(BaseUIModel):
         self.logging_in = False
         sdk.get_logger(__package__).info('Logged in' if self.thread_result else 'Failed to log in')
         self.status = f'登入「{"成功" if self.thread_result else "失敗"}」'
+        self._qthread = None
 
 
 class Start(QThread):

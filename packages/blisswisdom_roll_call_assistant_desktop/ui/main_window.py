@@ -1,3 +1,4 @@
+import datetime
 import importlib.resources
 import pathlib
 import webbrowser
@@ -140,4 +141,5 @@ class QMainWindowExt(QMainWindow):
 
     def on_status_changed(self, value: str) -> None:
         self.status_plain_text_edit.moveCursor(QTextCursor.End)
-        self.status_plain_text_edit.insertPlainText(f'{value}\n')
+        self.status_plain_text_edit.insertPlainText(
+            f'[{datetime.datetime.now().time().strftime("%H:%M:%S")}] {value}\n')

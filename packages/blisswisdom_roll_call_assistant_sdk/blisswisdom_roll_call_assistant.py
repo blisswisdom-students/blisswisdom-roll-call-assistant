@@ -5,6 +5,7 @@ import os
 import pathlib
 import shutil
 import stat
+import subprocess
 import tempfile
 import time
 from typing import Any, Callable, Optional
@@ -13,11 +14,12 @@ import easyocr
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.remote.remote_connection import LOGGER
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
 
 from .config import Config
 from .log import get_logger
@@ -90,12 +92,13 @@ class SimpleBlissWisdomRollCallAssistant:
 
         LOGGER.setLevel(logging.INFO)
 
-        edge_options: webdriver.EdgeOptions = webdriver.EdgeOptions()
-        edge_options.add_argument('--start-maximized')
-        edge_options.add_argument(f'user-data-dir={self.work_path}')
         os.environ['WDM_PROGRESS_BAR'] = '0'  # WebDriverManager progress bar hangs on some computers
-        self.browser_driver: webdriver.Edge = webdriver.Edge(
-            EdgeChromiumDriverManager().install(), options=edge_options)
+        service: FirefoxService = FirefoxService(GeckoDriverManager().install())
+        if os.name == 'nt':
+            service.creation_flags = subprocess.CREATE_NO_WINDOW
+        self.browser_driver: webdriver.Firefox = webdriver.Firefox(
+            firefox_profile=webdriver.FirefoxProfile(self.work_path), service=service)
+        self.browser_driver.maximize_window()
 
     def clear_work_dir(self) -> None:
         def on_rm_error(func: Callable[[Any], None], path: str, _: Any):
@@ -106,6 +109,7 @@ class SimpleBlissWisdomRollCallAssistant:
             shutil.rmtree(self.work_path, onerror=on_rm_error)
 
     def log_in(self) -> bool:
+        res: bool = False
         try:
             self.browser_driver.get(BlissWisdomRollCall.HOME_PAGE.value)
 
@@ -120,7 +124,7 @@ class SimpleBlissWisdomRollCallAssistant:
             f_path: str
             (fd, f_path) = tempfile.mkstemp(suffix='.png')
             os.write(fd, base64.b64decode(img_base64))
-            captcha: str = easyocr.Reader(['en'], gpu=False).readtext(f_path, allowlist ='0123456789')[0][1]
+            captcha: str = easyocr.Reader(['en'], gpu=False).readtext(f_path, allowlist='0123456789')[0][1]
             get_logger(__package__).info(f'Captcha: {captcha}')
             os.close(fd)
             os.remove(f_path)
@@ -131,7 +135,11 @@ class SimpleBlissWisdomRollCallAssistant:
             WebDriverWait(self.browser_driver, 10).until(lambda d: BlissWisdomRollCallElementFinder.logout_button(d))
 
             time.sleep(10)
-            return True
+            res = True
         except Exception as e:
             get_logger(__package__).exception(e)
-            return False
+        try:
+            self.browser_driver.quit()
+        except Exception:
+            pass
+        return res

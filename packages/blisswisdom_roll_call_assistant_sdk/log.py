@@ -3,8 +3,6 @@ import pathlib
 import sys
 from typing import Optional
 
-from .constant import PROG_NAME
-
 inited: bool = False
 
 

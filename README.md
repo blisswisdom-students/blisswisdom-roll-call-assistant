@@ -15,11 +15,17 @@ https://user-images.githubusercontent.com/1842626/230267365-0a8bd99a-c63b-4779-8
   + [Design concepts](#design-concepts)
 * [License](#license)
 
+## Usage
+
+### Prerequisites
+
+1. [Firefox Browser](https://www.mozilla.org/en-US/firefox/browsers/)
+
 ## Development
 
 ### Environment
 
-1. [Python](https://www.python.org/) 3.11+
+1. [Python](https://www.python.org/) 3.10
 2. [Poetry](https://python-poetry.org/)
 3. [PyCharm](https://www.jetbrains.com/pycharm/)
 4. [Git](https://git-scm.com/)
@@ -45,7 +51,7 @@ poetry run pyinstaller --clean desktop.spec
 
 ### Design concepts
 
-1. [Object-oriented programming](https://en.wikipedia.org/wiki/Object-oriented_programming)
+1. [Object-oriented programming](https://en.wikipedia.org/wiki/Object-oriented_programming) (OOP)
 2. [Model–view–viewmodel](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel) (MVVM)
 
 ### Key libraries

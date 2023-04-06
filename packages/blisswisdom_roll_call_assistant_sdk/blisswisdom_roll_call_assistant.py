@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional
 
 import easyocr
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.remote_connection import LOGGER
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -88,11 +88,12 @@ class SimpleBlissWisdomRollCallAssistant:
         if not self.work_path.is_dir():
             self.work_path.mkdir()
 
-        LOGGER.setLevel(logging.WARNING)
+        LOGGER.setLevel(logging.INFO)
 
         edge_options: webdriver.EdgeOptions = webdriver.EdgeOptions()
         edge_options.add_argument('--start-maximized')
         edge_options.add_argument(f'user-data-dir={self.work_path}')
+        os.environ['WDM_PROGRESS_BAR'] = '0'  # WebDriverManager progress bar hangs on some computers
         self.browser_driver: webdriver.Edge = webdriver.Edge(
             EdgeChromiumDriverManager().install(), options=edge_options)
 

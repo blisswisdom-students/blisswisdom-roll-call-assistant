@@ -3,10 +3,16 @@ import pathlib
 import sys
 from typing import Optional
 
+from .constant import PROG_NAME
+
 inited: bool = False
 
 
 def init_logger(path: Optional[pathlib.Path]) -> None:
+    global inited
+    if inited:
+        return
+
     logger: logging.Logger = logging.getLogger()
     formatter: logging.Formatter = logging.Formatter(
         '[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s')
@@ -20,13 +26,11 @@ def init_logger(path: Optional[pathlib.Path]) -> None:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    logger.setLevel(logging.INFO)
-
-    global inited
+    logger.setLevel(logging.DEBUG)
     inited = True
 
 
-def get_logger(name) -> logging.Logger:
+def get_logger(name: str = str(__package__).removesuffix('_sdk')) -> logging.Logger:
     if not inited:
         print('Logger is not initialized yet', file=sys.stderr)
     return logging.getLogger(name)

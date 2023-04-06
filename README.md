@@ -2,17 +2,21 @@
 
 ![screenshot](assets/screenshot.png)
 
-
 https://user-images.githubusercontent.com/1842626/230267365-0a8bd99a-c63b-4779-85f9-568493657e92.mp4
 
-
+* [Usage](#usage)
+  + [Prerequisites](#prerequisites)
 * [Development](#development)
   + [Environment](#environment)
     - [Reference](#reference)
   + [Setup](#setup)
+  + [Run](#run)
+    - [福智學員平臺點名助手](#-----------1)
+    - [Qt Designer](#qt-designer)
   + [Packaging](#packaging)
     - [Desktop application](#desktop-application)
   + [Design concepts](#design-concepts)
+  + [Key libraries](#key-libraries)
 * [License](#license)
 
 ## Usage
@@ -38,7 +42,21 @@ https://user-images.githubusercontent.com/1842626/230267365-0a8bd99a-c63b-4779-8
 
 ```
 poetry install
-poetry run pip install numpy --upgrade
+poetry run pip install numpy --upgrade  # EasyOCR depends on an older version of numpy which is not compatible with our development environment
+```
+
+### Run
+
+#### 福智學員平臺點名助手
+
+```
+poetry run blisswisdom-roll-call-assistant-desktop
+```
+
+#### Qt Designer
+
+```
+poetry run pyside6-designer
 ```
 
 ### Packaging

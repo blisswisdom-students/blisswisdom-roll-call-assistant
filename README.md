@@ -4,14 +4,16 @@
 
 https://user-images.githubusercontent.com/1842626/230267365-0a8bd99a-c63b-4779-85f9-568493657e92.mp4
 
-* [Usage](#usage)
-  + [Prerequisites](#prerequisites)
+* [使用說明](#使用說明)
+  + [下載](#下載)
+  + [環境需求](#環境需求)
+  + [執行](#執行)
 * [Development](#development)
   + [Environment](#environment)
     - [Reference](#reference)
   + [Setup](#setup)
   + [Run](#run)
-    - [福智學員平臺點名助手](#-----------1)
+    - [福智學員平臺點名助手](#福智學員平臺點名助手-1)
     - [Qt Designer](#qt-designer)
   + [Packaging](#packaging)
     - [Desktop application](#desktop-application)
@@ -19,11 +21,21 @@ https://user-images.githubusercontent.com/1842626/230267365-0a8bd99a-c63b-4779-8
   + [Key libraries](#key-libraries)
 * [License](#license)
 
-## Usage
+## 使用說明
 
-### Prerequisites
+### 下載
+
+https://github.com/changyuheng/blisswisdom-roll-call-assistant/releases
+
+### 環境需求
 
 1. [Firefox Browser](https://www.mozilla.org/en-US/firefox/browsers/)
+
+### 執行
+
+```
+福智學員平臺點名助手.exe
+```
 
 ## Development
 

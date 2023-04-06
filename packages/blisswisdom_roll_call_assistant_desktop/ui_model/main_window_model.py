@@ -107,6 +107,7 @@ class MainWindowModel(BaseUIModel):
         self.status = '開始匯入點名資料 ...'
         self._qthread = Start(self)
         self._qthread.finished.connect(self.on_start_finish)
+        self.thread_result = False
         self._qthread.start()
 
     def on_start_finish(self) -> None:
@@ -126,6 +127,7 @@ class MainWindowModel(BaseUIModel):
         self.status = '開始登入 ...'
         self._qthread = LogIn(self)
         self._qthread.finished.connect(self.on_log_in_finish)
+        self.thread_result = False
         self._qthread.start()
 
     def on_log_in_finish(self) -> None:

@@ -12,7 +12,7 @@ from . import ui_model
 
 
 def main() -> int:
-    sdk.init_logger(sdk.get_entry_file_path().parent / f'{sdk.PROG_NAME}.log')
+    sdk.init_logger(sdk.get_entry_file_path().parent / f'{sdk.PROG_NAME}-v{sdk.VERSION}.log')
 
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app: QApplication = QApplication(sys.argv)

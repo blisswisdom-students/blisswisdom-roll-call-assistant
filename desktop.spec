@@ -1,9 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import os
+import platform
 import sys
 
+import tomli
+
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
+
 block_cipher = None
 qt_plugins_path = (os.path.join('.venv', 'Lib', 'site-packages', 'PySide6', 'plugins'), os.path.join('PySide6', 'plugins')) if os.name == 'nt' \
     else (os.path.join('.venv', 'lib', 'python3.11', 'site-packages', 'PySide6', 'Qt', 'plugins'), os.path.join('PySide6', 'Qt', 'plugins'))
@@ -33,7 +37,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='blisswisdom-roll-call-assistant-desktop',
+    name='福智學員平臺點名助手',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -46,6 +50,7 @@ exe = EXE(
     entitlements_file=None,
     icon=os.path.join('packages', 'blisswisdom_roll_call_assistant_desktop', 'ui', 'icon.ico'),
 )
+f = open('pyproject.toml', 'rb')
 coll = COLLECT(
     exe,
     a.binaries,
@@ -54,5 +59,6 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='福智學員平臺點名助手',
+    name=f'福智學員平臺點名助手-{platform.system()}-v{tomli.load(f)["tool"]["poetry"]["version"]}',
 )
+f.close()

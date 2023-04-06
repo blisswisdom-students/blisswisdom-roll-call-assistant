@@ -1,5 +1,6 @@
 import importlib.resources
 import pathlib
+import platform
 import sys
 
 from PySide6.QtCore import QCoreApplication, QFile, QIODevice, Qt
@@ -12,7 +13,7 @@ from . import ui_model
 
 
 def main() -> int:
-    sdk.init_logger(sdk.get_entry_file_path().parent / f'{sdk.PROG_NAME}-v{sdk.VERSION}.log')
+    sdk.init_logger(sdk.get_entry_file_path().parent / f'{sdk.PROG_NAME}-{platform.system()}-v{sdk.VERSION}.log')
 
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app: QApplication = QApplication(sys.argv)

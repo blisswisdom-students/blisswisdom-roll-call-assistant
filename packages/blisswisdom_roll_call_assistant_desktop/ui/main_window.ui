@@ -18,7 +18,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="0" column="0">
-     <layout class="QGridLayout" name="gridLayout" rowstretch="3,0,2,0,0,0,1,1" columnstretch="1,0,0,2,0,0,0,1">
+     <layout class="QGridLayout" name="gridLayout" rowstretch="6,0,3,0,0,0,1,1" columnstretch="1,0,0,2,0,0,0,1">
       <item row="5" column="0" rowspan="2" colspan="7">
        <layout class="QGridLayout" name="gridLayout_5">
         <item row="0" column="2">
@@ -34,9 +34,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>14</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -57,9 +55,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>14</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -77,9 +73,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>14</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -95,13 +89,14 @@
          <widget class="QLabel" name="character_label">
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>12</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
            <string>身分：</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
@@ -118,7 +113,6 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei</family>
             <pointsize>12</pointsize>
            </font>
           </property>
@@ -128,13 +122,14 @@
          <widget class="QLabel" name="account_label">
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>12</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
            <string>帳號：</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
@@ -142,13 +137,14 @@
          <widget class="QLabel" name="password_label">
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>12</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
            <string>密碼：</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
@@ -156,13 +152,14 @@
          <widget class="QLabel" name="class_label">
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>12</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
            <string>班級名稱：</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
@@ -179,7 +176,6 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei</family>
             <pointsize>12</pointsize>
            </font>
           </property>
@@ -201,7 +197,6 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei</family>
             <pointsize>12</pointsize>
            </font>
           </property>
@@ -220,7 +215,6 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei</family>
             <pointsize>12</pointsize>
            </font>
           </property>
@@ -240,9 +234,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>14</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -263,9 +255,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>14</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -283,9 +273,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>14</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
@@ -301,13 +289,14 @@
          <widget class="QLabel" name="attendance_form_links_label">
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>12</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">
-           <string>各組出勤回報連結：</string>
+           <string>　　各組出勤結果連結：</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
@@ -324,7 +313,6 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei</family>
             <pointsize>12</pointsize>
            </font>
           </property>
@@ -342,6 +330,7 @@
         </property>
         <property name="font">
          <font>
+          <family>Segoe UI Emoji</family>
           <pointsize>11</pointsize>
          </font>
         </property>
@@ -354,7 +343,7 @@
        </widget>
       </item>
       <item row="2" column="7" rowspan="6">
-       <layout class="QGridLayout" name="gridLayout_6" rowstretch="5,1">
+       <layout class="QGridLayout" name="gridLayout_6" rowstretch="25,6">
         <item row="0" column="0">
          <widget class="QPlainTextEdit" name="status_plain_text_edit">
           <property name="sizePolicy">
@@ -365,7 +354,6 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei</family>
             <pointsize>12</pointsize>
            </font>
           </property>
@@ -384,9 +372,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Microsoft JhengHei UI</family>
             <pointsize>14</pointsize>
-            <bold>true</bold>
            </font>
           </property>
           <property name="text">

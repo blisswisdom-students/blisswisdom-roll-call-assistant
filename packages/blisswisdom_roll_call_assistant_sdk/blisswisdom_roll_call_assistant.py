@@ -114,6 +114,12 @@ class SimpleBlissWisdomRollCallAssistant:
             self.browser_driver.get(BlissWisdomRollCall.HOME_PAGE.value)
 
             WebDriverWait(self.browser_driver, 10).until(lambda d: BlissWisdomRollCallElementFinder.first_login_link(d))
+            WebDriverWait(self.browser_driver, 10).until(
+                lambda d: BlissWisdomRollCallElementFinder.account_text_input(d))
+            WebDriverWait(self.browser_driver, 10).until(
+                lambda d: BlissWisdomRollCallElementFinder.password_text_input(d))
+            WebDriverWait(self.browser_driver, 10).until(lambda d: BlissWisdomRollCallElementFinder.captcha_image(d))
+            WebDriverWait(self.browser_driver, 10).until(lambda d: BlissWisdomRollCallElementFinder.login_button(d))
 
             BlissWisdomRollCallElementFinder.account_text_input(self.browser_driver).send_keys(self.config.account)
             BlissWisdomRollCallElementFinder.password_text_input(self.browser_driver).send_keys(self.config.password)

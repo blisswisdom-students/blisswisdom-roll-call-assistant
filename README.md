@@ -29,7 +29,11 @@ https://github.com/changyuheng/blisswisdom-roll-call-assistant/releases
 
 ### 環境需求
 
-1. [Firefox Browser](https://www.mozilla.org/en-US/firefox/browsers/)
+| 作業系統                                                                | 瀏覽器                                           |
+| ----------------------------------------------------------------------- | ------------------------------------------------ |
+| [Windows](https://www.microsoft.com/windows/)                           | [Microsoft Edge](https://www.microsoft.com/edge) |
+| [macOS](https://www.apple.com/macos/)                                   | [Google Chrome](https://www.google.com/chrome/)  |
+| [Linux distributions](https://en.wikipedia.org/wiki/Linux_distribution) | [Google Chrome](https://www.google.com/chrome/)  |
 
 ### 執行
 

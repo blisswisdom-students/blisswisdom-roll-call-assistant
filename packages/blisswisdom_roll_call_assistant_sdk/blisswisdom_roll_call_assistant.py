@@ -14,12 +14,13 @@ import easyocr
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.remote.remote_connection import LOGGER
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 from .config import Config
 from .log import get_logger
@@ -91,13 +92,17 @@ class SimpleBlissWisdomRollCallAssistant:
             self.work_path.mkdir()
 
         LOGGER.setLevel(logging.INFO)
-
         os.environ['WDM_PROGRESS_BAR'] = '0'  # WebDriverManager progress bar hangs on some computers
-        service: FirefoxService = FirefoxService(GeckoDriverManager().install())
         if os.name == 'nt':
+            service: EdgeService = EdgeService(EdgeChromiumDriverManager().install())
             service.creation_flags = subprocess.CREATE_NO_WINDOW
-        self.browser_driver: webdriver.Firefox = webdriver.Firefox(
-            firefox_profile=webdriver.FirefoxProfile(self.work_path), service=service)
+            options: webdriver.EdgeOptions = webdriver.EdgeOptions()
+            options.add_argument(f'user-data-dir={self.work_path}')
+            self.browser_driver: webdriver.Edge = webdriver.Edge(options=options, service=service)
+        else:
+            options: webdriver.ChromeOptions = webdriver.ChromeOptions()
+            options.add_argument(f'user-data-dir={self.work_path}')
+            self.browser_driver: webdriver.Chrome = webdriver.Chrome(ChromeDriverManager().install(), options=options)
         self.browser_driver.maximize_window()
 
     def clear_work_dir(self) -> None:
@@ -144,8 +149,4 @@ class SimpleBlissWisdomRollCallAssistant:
             res = True
         except Exception as e:
             get_logger(__package__).exception(e)
-        try:
-            self.browser_driver.quit()
-        except Exception:
-            pass
         return res

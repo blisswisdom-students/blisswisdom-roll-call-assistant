@@ -16,14 +16,17 @@ def init_logger(path: Optional[pathlib.Path]) -> None:
         '[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s')
 
     if path:
-        handler: logging.Handler = logging.handlers.RotatingFileHandler(path, maxBytes=10 ** 5, backupCount=1)
+        handler: logging.Handler = logging.handlers.RotatingFileHandler(
+            path, maxBytes=10 ** 5, backupCount=1, encoding='utf-8')
         handler.setFormatter(formatter)
+        handler.setLevel(logging.DEBUG)
         logger.addHandler(handler)
 
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    handler.setLevel(logging.INFO)
 
+    logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
     inited = True
 

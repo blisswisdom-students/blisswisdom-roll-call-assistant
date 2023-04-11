@@ -10,8 +10,10 @@ class Config:
     account: str
     password: str
     character: str
-    class_: str
+    class_name: str
     attendance_urls: list[str]
+    google_api_private_key_id: str
+    google_api_private_key: str
 
     def save(self, path: pathlib.Path) -> None:
         f: io.FileIO

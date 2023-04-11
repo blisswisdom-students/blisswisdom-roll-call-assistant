@@ -1,6 +1,10 @@
+import dataclasses
+import datetime
+import enum
 import io
 import pathlib
-from typing import Optional
+import time
+from typing import Any, Optional
 
 import dacite
 import tomli
@@ -10,6 +14,23 @@ import blisswisdom_roll_call_assistant_sdk as sdk
 from .ui_model import BaseUIModel
 
 
+class JobResultCode(enum.IntEnum):
+    SUCCEEDED: int = 1
+    UNSET: int = 0
+    UNABLE_TO_INITIALIZE_WEB_DRIVER: int = -1
+    UNABLE_TO_LOG_IN: int = -2
+    NO_LECTURE_TO_ROLL_CALL: int = -3
+    UNABLE_TO_GET_CLASS_DATE: int = -4
+    UNABLE_TO_GET_MEMBER_LIST: int = -5
+    UNABLE_TO_ROLL_CALL: int = -6
+
+
+@dataclasses.dataclass
+class JobResult:
+    code: JobResultCode
+    data: Any = None
+
+
 class MainWindowModel(BaseUIModel):
     def __init__(self, config_path: pathlib.Path) -> None:
         super().__init__()
@@ -17,7 +38,7 @@ class MainWindowModel(BaseUIModel):
         self._in_progress: bool = False
         self._logging_in: bool = False
         self._status: str = ''
-        self.thread_result: bool = False
+        self.job_result: JobResult = JobResult(JobResultCode.UNSET)
 
         self.config: Optional[sdk.Config] = None
         self.config_path: pathlib.Path = config_path
@@ -29,7 +50,7 @@ class MainWindowModel(BaseUIModel):
         except Exception as e:
             sdk.get_logger(__package__).exception(e)
         if not self.config:
-            self.config = sdk.Config('', '', '', '', list())
+            self.config = sdk.Config('', '', '', '', list(), '', '')
 
     @property
     def in_progress(self) -> bool:
@@ -80,12 +101,28 @@ class MainWindowModel(BaseUIModel):
         self.config.character = value
 
     @property
-    def class_(self) -> str:
-        return self.config.class_
+    def class_name(self) -> str:
+        return self.config.class_name
 
-    @class_.setter
-    def class_(self, value: str) -> None:
-        self.config.class_ = value
+    @class_name.setter
+    def class_name(self, value: str) -> None:
+        self.config.class_name = value
+
+    @property
+    def google_api_private_key_id(self) -> str:
+        return self.config.google_api_private_key_id
+
+    @google_api_private_key_id.setter
+    def google_api_private_key_id(self, value: str) -> None:
+        self.config.google_api_private_key_id = value
+
+    @property
+    def google_api_private_key(self) -> str:
+        return self.config.google_api_private_key
+
+    @google_api_private_key.setter
+    def google_api_private_key(self, value: str) -> None:
+        self.config.google_api_private_key = value
 
     @property
     def attendance_urls(self) -> list[str]:
@@ -104,19 +141,33 @@ class MainWindowModel(BaseUIModel):
             self.status = '另一項工作正在執行中'
             return
         self.in_progress = True
+        sdk.get_logger(__package__).info('Importing ...')
         self.status = '開始匯入點名資料 ...'
         self._qthread = Start(self)
         self._qthread.finished.connect(self.on_start_finish)
-        self.thread_result = False
+        self.job_result = JobResult(JobResultCode.UNSET)
         self._qthread.start()
 
     def on_start_finish(self) -> None:
         self.in_progress = False
+        sdk.get_logger(__package__).info('Imported' if self.job_result.code > 0 else 'Failed to import')
+        if self.job_result.code == JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER:
+            self.status = '無法啟動瀏覽器'
+        elif self.job_result.code == JobResultCode.UNABLE_TO_LOG_IN:
+            self.status = '無法登入'
+        elif self.job_result.code == JobResultCode.NO_LECTURE_TO_ROLL_CALL:
+            self.status = '無上課時程表，不須點名'
+        self.status = f'匯入「{"成功" if self.job_result.code > 0 else "失敗"}」'
         self._qthread = None
+        self.job_result = JobResult(JobResultCode.UNSET)
 
     def stop(self) -> None:
+        sdk.get_logger(__package__).info('Stop importing ...')
         self.status = '停止匯入點名資料 ...'
-        self._qthread.stop()
+        if self._qthread:
+            self._qthread.terminate()
+            self._qthread = None
+            self.job_result = JobResult(JobResultCode.UNSET)
 
     def log_in(self) -> None:
         if self._qthread:
@@ -124,17 +175,21 @@ class MainWindowModel(BaseUIModel):
             self.status = '另一項工作正在執行中'
             return
         self.logging_in = True
+        sdk.get_logger(__package__).info('Logging in ...')
         self.status = '開始登入 ...'
         self._qthread = LogIn(self)
         self._qthread.finished.connect(self.on_log_in_finish)
-        self.thread_result = False
+        self.job_result = JobResult(JobResultCode.UNSET)
         self._qthread.start()
 
     def on_log_in_finish(self) -> None:
         self.logging_in = False
-        sdk.get_logger(__package__).info('Logged in' if self.thread_result else 'Failed to log in')
-        self.status = f'登入「{"成功" if self.thread_result else "失敗"}」'
+        sdk.get_logger(__package__).info('Logged in' if self.job_result.code > 0 else 'Failed to log in')
+        if self.job_result.code == JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER:
+            self.status = '無法啟動瀏覽器'
+        self.status = f'登入「{"成功" if self.job_result.code > 0 else "失敗"}」'
         self._qthread = None
+        self.job_result = JobResult(JobResultCode.UNSET)
 
 
 class Start(QThread):
@@ -144,10 +199,63 @@ class Start(QThread):
         self.config: sdk.Config = main_window_model.config
 
     def run(self) -> None:
-        pass
+        try:
+            try:
+                sbwcp: sdk.SimpleBlissWisdomCommitteePlatform = sdk.SimpleBlissWisdomCommitteePlatform(self.config)
+            except Exception:
+                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER)
+                raise
 
-    def stop(self) -> None:
-        pass
+            try:
+                sbwcp.log_in()
+            except Exception:
+                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_LOG_IN)
+                try:
+                    sbwcp.quit()
+                except Exception:
+                    pass
+                raise
+
+            try:
+                date: datetime.date = sbwcp.get_activated_roll_call_class_date()
+            except Exception:
+                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_CLASS_DATE)
+                raise
+
+            attendance_records: list[sdk.AttendanceRecord] = list()
+            url: str
+            for url in self.main_window_model.attendance_urls:
+                attendance_records += sdk.get_attendance_records(
+                    date=date,
+                    attendance_sheet_url=url,
+                    google_api_private_key_id=self.config.google_api_private_key_id,
+                    google_api_private_key=self.config.google_api_private_key)
+
+            try:
+                members: list[sdk.RollCallListMember] = sbwcp.get_activated_roll_call_list_members(no_state=True)
+            except Exception:
+                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_MEMBER_LIST)
+                raise
+            member: sdk.RollCallListMember
+            gnum_name_member_dict: dict[str, sdk.RollCallListMember] = \
+                {f'{member.group_number}-{member.name}': member for member in members}
+
+            record: sdk.AttendanceRecord
+            for record in attendance_records:
+                state: sdk.RollCallState = sdk.RollCallState.PRESENT if \
+                    record.state in [sdk.AttendanceState.IN_PERSON, sdk.AttendanceState.ONLINE] else \
+                    sdk.RollCallState(record.state.value)
+                gnum_name_member_dict[f'{record.group_number}-{record.name}'].state = state
+
+            try:
+                sbwcp.roll_call(members)
+            except Exception:
+                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_ROLL_CALL)
+                raise
+        except Exception as e:
+            sdk.get_logger(__package__).exception(e)
+        else:
+            self.main_window_model.job_result = JobResult(JobResultCode.SUCCEEDED)
 
 
 class LogIn(QThread):
@@ -157,7 +265,27 @@ class LogIn(QThread):
         self.config: sdk.Config = main_window_model.config
 
     def run(self) -> None:
-        self.main_window_model.thread_result = sdk.SimpleBlissWisdomRollCallAssistant(self.config).log_in()
+        sbwcp: Optional[sdk.SimpleBlissWisdomCommitteePlatform] = None
+        try:
+            try:
+                sbwcp = sdk.SimpleBlissWisdomCommitteePlatform(self.config)
+            except Exception:
+                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER)
+                raise
 
-    def stop(self) -> None:
-        pass
+            try:
+                sbwcp.log_in()
+            except Exception:
+                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_LOG_IN)
+                raise
+            time.sleep(3)
+        except Exception as e:
+            sdk.get_logger(__package__).exception(e)
+        else:
+            self.main_window_model.job_result = JobResult(JobResultCode.SUCCEEDED)
+        finally:
+            try:
+                if sbwcp:
+                    sbwcp.quit()
+            except Exception as e:
+                sdk.get_logger(__package__).exception(e)

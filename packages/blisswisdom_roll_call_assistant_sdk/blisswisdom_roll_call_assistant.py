@@ -8,7 +8,7 @@ import stat
 import subprocess
 import tempfile
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, List
 
 import easyocr
 from selenium import webdriver
@@ -21,6 +21,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from selenium.webdriver.support import expected_conditions as EC
 
 from .config import Config
 from .log import get_logger
@@ -77,6 +78,35 @@ class BlissWisdomRollCallElementFinder:
         except NoSuchElementException:
             return
 
+    @classmethod
+    def class_manager_drop_down_menu(cls) -> Optional[WebElement]:
+        try:
+            return EC.element_to_be_clickable((By.XPATH, '//*[text()="班級管理"]'))
+        except NoSuchElementException:
+            return
+
+    @classmethod
+    def seminar_roll_call(cls) -> Optional[WebElement]:
+        try:
+            return EC.element_to_be_clickable((By.XPATH, '//*[text()="研討班點名"]'))
+        except NoSuchElementException:
+            return
+
+    @classmethod
+    def class_name(cls) -> Optional[WebElement]:
+        try:
+            return EC.element_to_be_clickable((By.XPATH, '//*[@id="q-app"]/div[1]/div[2]/main/div[2]/div[2]/div[1]/div/div[2]/div/div[2]/div[2]/div/div/div/div'))
+        except NoSuchElementException:
+            return
+
+    @classmethod
+    def class_name_list(cls, element: WebDriver | WebElement) -> Optional[WebElement]:
+        try:
+            # return EC.visibility_of_element_located((By.XPATH, '/html/body/div[2]/div[2]/div[1]'))
+            return element.find_elements(By.XPATH, '/html/body/div[2]/div[2]/*')
+        except NoSuchElementException:
+            return
+
 
 class BlissWisdomRollCall(enum.Enum):
     HOME_PAGE: str = 'https://pw.blisswisdom.org/'
@@ -112,6 +142,18 @@ class SimpleBlissWisdomRollCallAssistant:
 
         if self.work_path.is_dir():
             shutil.rmtree(self.work_path, onerror=on_rm_error)
+
+    def class_names(self) -> List[str]:
+        WebDriverWait(self.browser_driver, 10).until(
+            BlissWisdomRollCallElementFinder.class_manager_drop_down_menu()).click()
+        WebDriverWait(self.browser_driver, 10).until(
+            BlissWisdomRollCallElementFinder.seminar_roll_call()).click()
+        WebDriverWait(self.browser_driver, 10).until(
+            BlissWisdomRollCallElementFinder.class_name()).click()
+        class_elements = WebDriverWait(self.browser_driver, 10).until(
+            lambda d: BlissWisdomRollCallElementFinder.class_name_list(d))
+
+        return [e.text for e in class_elements]
 
     def log_in(self) -> bool:
         res: bool = False

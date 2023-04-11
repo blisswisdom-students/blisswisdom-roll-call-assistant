@@ -37,9 +37,7 @@ https://github.com/changyuheng/blisswisdom-roll-call-assistant/releases
 
 ### 執行
 
-```
-福智學員平臺點名助手.exe
-```
+`福智學員平臺點名助手.exe`
 
 ## Development
 

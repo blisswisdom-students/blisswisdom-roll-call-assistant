@@ -8,7 +8,7 @@ import stat
 import subprocess
 import tempfile
 import time
-from typing import Any, Callable, Optional, List
+from typing import Any, Callable, Optional
 
 import easyocr
 from selenium import webdriver
@@ -143,7 +143,7 @@ class SimpleBlissWisdomRollCallAssistant:
         if self.work_path.is_dir():
             shutil.rmtree(self.work_path, onerror=on_rm_error)
 
-    def class_names(self) -> List[str]:
+    def class_names(self) -> list[str]:
         WebDriverWait(self.browser_driver, 10).until(
             BlissWisdomRollCallElementFinder.class_manager_drop_down_menu()).click()
         WebDriverWait(self.browser_driver, 10).until(

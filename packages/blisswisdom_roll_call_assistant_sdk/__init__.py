@@ -1,4 +1,4 @@
-from .attendance import AttendanceRecord, AttendanceState, get_attendance_records
+from .attendance_sheet import AttendanceRecord, AttendanceSheet, AttendanceState
 from .blisswisdom_committee_platform import (
     NoLectureToRollCallError,
     RollCallListMember,

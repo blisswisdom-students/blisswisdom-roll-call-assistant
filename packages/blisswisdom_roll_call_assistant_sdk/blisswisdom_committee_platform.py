@@ -427,10 +427,10 @@ class ActivatedRollCallPageHelper(TablePageHelper):
                 EC.element_to_be_clickable(
                     BlissWisdomCommitteePlatformElement.member_state_radio_button(member)))
             action_helper: ActionHelper = ActionHelper(self.web_driver)
-            action_helper.scroll_to(element, offset_y=-180)
-            time.sleep(0.5)
+            action_helper.scroll_to(element, offset_y=-100)
+            time.sleep(1)
             element.click()
-            time.sleep(2.5)
+            time.sleep(3)
             get_logger(__package__).info(f'{member.group_number}-{member.name}: {member.state.value}')
 
 

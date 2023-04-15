@@ -225,11 +225,9 @@ class Start(QThread):
             attendance_records: list[sdk.AttendanceRecord] = list()
             url: str
             for url in self.main_window_model.attendance_urls:
-                attendance_records += sdk.get_attendance_records(
-                    date=date,
-                    attendance_sheet_url=url,
-                    google_api_private_key_id=self.config.google_api_private_key_id,
-                    google_api_private_key=self.config.google_api_private_key)
+                attendance_records += sdk.AttendanceSheet(
+                    url=url, google_api_private_key_id=self.config.google_api_private_key_id,
+                    google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)
 
             try:
                 members: list[sdk.RollCallListMember] = sbwcp.get_activated_roll_call_list_members(no_state=True)

@@ -56,7 +56,12 @@ https://github.com/changyuheng/blisswisdom-roll-call-assistant/releases
 
 ```
 poetry install
-poetry run pip install numpy --upgrade  # EasyOCR depends on an older version of numpy which is not compatible with our development environment
+```
+
+#### Windows Only
+
+```
+poetry run pip install numpy --upgrade  # EasyOCR depends on an older version of numpy, which is not compatible with our development environment.
 ```
 
 ### Run

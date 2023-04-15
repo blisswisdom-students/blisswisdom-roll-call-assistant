@@ -236,16 +236,33 @@ class Start(QThread):
             except Exception:
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_MEMBER_LIST)
                 raise
+
+            attendance_list_group_number_name_set: set[str] = set(
+                map(lambda a: f'{a.group_number:02}-{a.name}', attendance_records))
+            roll_call_list_group_number_name_set: set[str] = set(
+                map(lambda m: f'{m.group_number:02}-{m.name}', members))
+
+            members_not_on_the_platform: set[str] = \
+                attendance_list_group_number_name_set - roll_call_list_group_number_name_set
+            members_not_on_the_attendance_feedback: set[str] = \
+                roll_call_list_group_number_name_set - attendance_list_group_number_name_set
+            if members_not_on_the_platform:
+                self.main_window_model.status = \
+                    f'不在點名系統的學員：{", ".join(sorted(list(members_not_on_the_platform)))}'
+            if members_not_on_the_attendance_feedback:
+                self.main_window_model.status = \
+                    f'不在出席回條的人員：{", ".join(sorted(list(members_not_on_the_attendance_feedback)))}'
+
             member: sdk.RollCallListMember
             gnum_name_member_dict: dict[str, sdk.RollCallListMember] = \
-                {f'{member.group_number}-{member.name}': member for member in members}
+                {f'{member.group_number:02}-{member.name}': member for member in members}
 
             record: sdk.AttendanceRecord
             for record in attendance_records:
                 state: sdk.RollCallState = sdk.RollCallState.PRESENT if \
                     record.state in [sdk.AttendanceState.IN_PERSON, sdk.AttendanceState.ONLINE] else \
                     sdk.RollCallState(record.state.value)
-                gnum_name_member_dict[f'{record.group_number}-{record.name}'].state = state
+                gnum_name_member_dict[f'{record.group_number:02}-{record.name}'].state = state
 
             try:
                 sbwcp.roll_call(members)

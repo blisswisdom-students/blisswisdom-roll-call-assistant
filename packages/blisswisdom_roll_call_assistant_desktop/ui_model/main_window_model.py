@@ -227,9 +227,12 @@ class Start(QThread):
             for url in self.main_window_model.attendance_urls:
                 if not url:
                     continue
-                attendance_records += sdk.AttendanceSheet(
-                    url=url, google_api_private_key_id=self.config.google_api_private_key_id,
-                    google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)
+                try:
+                    attendance_records += sdk.AttendanceSheet(
+                        url=url, google_api_private_key_id=self.config.google_api_private_key_id,
+                        google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)
+                except sdk.NoRelevantRowError:
+                    pass
 
             try:
                 members: list[sdk.RollCallListMember] = sbwcp.get_activated_roll_call_list_members(no_state=True)

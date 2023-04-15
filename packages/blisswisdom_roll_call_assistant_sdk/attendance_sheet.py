@@ -4,11 +4,14 @@ import enum
 import json
 import os
 import tempfile
-from typing import Any
 
 import pygsheets
 
 from .log import get_logger
+
+
+class NoRelevantRowError(RuntimeError):
+    pass
 
 
 class AttendanceState(enum.Enum):
@@ -87,6 +90,8 @@ class AttendanceSheet:
             if AttendanceSheetHelper.convert_to_date(cell.value) != date:
                 continue
             last_relevant_row_index = i + 2
+        if last_relevant_row_index == 0:
+            raise NoRelevantRowError
         return last_relevant_row_index
 
     def get_group_number(self, row_index: int) -> int:

@@ -1,4 +1,4 @@
-from .attendance_sheet import AttendanceRecord, AttendanceSheet, AttendanceState
+from .attendance_sheet import AttendanceRecord, AttendanceSheet, AttendanceState, NoRelevantRowError
 from .blisswisdom_committee_platform import (
     NoLectureToRollCallError,
     RollCallListMember,

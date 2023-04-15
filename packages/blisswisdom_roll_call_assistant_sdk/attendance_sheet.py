@@ -101,18 +101,20 @@ class AttendanceSheet:
         group_number: int = self.get_group_number(last_relevant_row_index)
         get_logger(__package__).info(f'{group_number=}')
 
-        matrix: list[list[Any]] = self.wks.get_all_values(include_tailing_empty=False, include_tailing_empty_rows=False)
+        title_row: list[pygsheets.Cell] = self.wks.get_row(1, returnas='cell', include_tailing_empty=False)
+        data_row: list[pygsheets.Cell] = self.wks.get_row(
+            last_relevant_row_index, returnas='cell', include_tailing_empty=False)
 
-        column_name: str
-        value: Any
-        for (column_name, value) in zip(matrix[0], matrix[last_relevant_row_index-1]):
-            if not column_name.startswith('出席記錄 ['):
+        title_cell: pygsheets.Cell
+        data_cell: pygsheets.Cell
+        for (title_cell, data_cell) in zip(title_row, data_row):
+            if not title_cell.value.startswith('出席記錄 ['):
                 continue
 
-            name: str = AttendanceSheetHelper.convert_to_name(column_name)
+            name: str = AttendanceSheetHelper.convert_to_name(title_cell.value)
             get_logger(__package__).info(f'{name=}')
 
-            state: AttendanceState = AttendanceState(value)
+            state: AttendanceState = AttendanceState(data_cell.value) if data_cell.value else AttendanceState.ABSENT
             get_logger(__package__).info(f'{state=}')
 
             res.append(AttendanceRecord(name=name, state=state, group_number=group_number, date=date))

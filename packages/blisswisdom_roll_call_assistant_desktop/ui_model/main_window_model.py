@@ -260,7 +260,9 @@ class Start(QThread):
                 state: sdk.RollCallState = sdk.RollCallState.PRESENT if \
                     record.state in [sdk.AttendanceState.IN_PERSON, sdk.AttendanceState.ONLINE] else \
                     sdk.RollCallState(record.state.value)
-                gnum_name_member_dict[f'{record.group_number:02}-{record.name}'].state = state
+                key: str = f'{record.group_number:02}-{record.name}'
+                if key in gnum_name_member_dict:
+                    gnum_name_member_dict[key].state = state
 
             try:
                 sbwcp.roll_call(members)

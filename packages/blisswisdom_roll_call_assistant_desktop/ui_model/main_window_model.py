@@ -218,6 +218,9 @@ class Start(QThread):
 
             try:
                 date: datetime.date = sbwcp.get_activated_roll_call_class_date()
+            except sdk.NoLectureToRollCallError:
+                self.main_window_model.job_result = JobResult(JobResultCode.NO_LECTURE_TO_ROLL_CALL)
+                raise
             except Exception:
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_CLASS_DATE)
                 raise

@@ -225,6 +225,8 @@ class Start(QThread):
             attendance_records: list[sdk.AttendanceRecord] = list()
             url: str
             for url in self.main_window_model.attendance_urls:
+                if not url:
+                    continue
                 attendance_records += sdk.AttendanceSheet(
                     url=url, google_api_private_key_id=self.config.google_api_private_key_id,
                     google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)

@@ -413,7 +413,7 @@ class ActivatedRollCallPageHelper(TablePageHelper):
                 break
 
             self.go_to_next_page()
-            time.sleep(1)
+            time.sleep(3)
         return res
 
     def roll_call(self, members: list[RollCallListMember]):

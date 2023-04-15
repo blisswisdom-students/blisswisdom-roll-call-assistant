@@ -2,8 +2,6 @@
 
 ![screenshot](assets/screenshot.png)
 
-https://user-images.githubusercontent.com/1842626/230267365-0a8bd99a-c63b-4779-85f9-568493657e92.mp4
-
 * [使用說明](#使用說明)
   + [下載](#下載)
   + [環境需求](#環境需求)

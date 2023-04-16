@@ -58,8 +58,8 @@ class AttendanceSheetHelper:
 
 
 class AttendanceSheet:
-    def __init__(self, url: str, google_api_private_key_id: str, google_api_private_key: str) -> None:
-        self.url: str = url
+    def __init__(self, link: str, google_api_private_key_id: str, google_api_private_key: str) -> None:
+        self.link: str = link
         self.google_api_private_key_id: str = google_api_private_key_id
         self.google_api_private_key: str = google_api_private_key
 
@@ -80,7 +80,7 @@ class AttendanceSheet:
                                     'roll-call-assistant%40bw-roll-call-assistant.iam.gserviceaccount.com',
         }).encode())
         os.close(fd)
-        self.wks: pygsheets.Worksheet = pygsheets.authorize(service_file=f_path).open_by_url(url).sheet1
+        self.wks: pygsheets.Worksheet = pygsheets.authorize(service_file=f_path).open_by_url(link).sheet1
 
     def get_class_date_index(self, date: datetime.date) -> int:
         last_relevant_row_index: int = 0

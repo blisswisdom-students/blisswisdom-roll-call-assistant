@@ -50,7 +50,15 @@ class MainWindowModel(BaseUIModel):
         except Exception as e:
             sdk.get_logger(__package__).exception(e)
         if not self.config:
-            self.config = sdk.Config('', '', '', '', list(), '', '')
+            self.config = sdk.Config(
+                account='',
+                password='',
+                character='',
+                class_name='',
+                google_api_private_key_id='',
+                google_api_private_key='',
+                attendance_report_sheet_links=list())
+            self.config.save(config_path)
 
     @property
     def in_progress(self) -> bool:
@@ -125,12 +133,12 @@ class MainWindowModel(BaseUIModel):
         self.config.google_api_private_key = value
 
     @property
-    def attendance_urls(self) -> list[str]:
-        return self.config.attendance_urls
+    def attendance_report_sheet_links(self) -> list[sdk.AttendanceReportSheetLink]:
+        return self.config.attendance_report_sheet_links
 
-    @attendance_urls.setter
-    def attendance_urls(self, value: list[str]) -> None:
-        self.config.attendance_urls = value
+    @attendance_report_sheet_links.setter
+    def attendance_report_sheet_links(self, value: list[sdk.AttendanceReportSheetLink]) -> None:
+        self.config.attendance_report_sheet_links = value
 
     def save(self) -> None:
         self.config.save(self.config_path)
@@ -222,13 +230,13 @@ class Start(QThread):
                 raise
 
             attendance_records: list[sdk.AttendanceRecord] = list()
-            url: str
-            for url in self.main_window_model.attendance_urls:
-                if not url:
+            arsl: sdk.AttendanceReportSheetLink
+            for arsl in self.main_window_model.attendance_report_sheet_links:
+                if not arsl.link:
                     continue
                 try:
                     attendance_records += sdk.AttendanceSheet(
-                        url=url, google_api_private_key_id=self.config.google_api_private_key_id,
+                        link=arsl.link, google_api_private_key_id=self.config.google_api_private_key_id,
                         google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)
                 except sdk.NoRelevantRowError:
                     pass

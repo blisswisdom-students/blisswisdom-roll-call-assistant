@@ -3,8 +3,22 @@ import importlib.resources
 import pathlib
 import webbrowser
 
+from PySide6.QtCore import QModelIndex, Signal
 from PySide6.QtGui import QCloseEvent, QIcon, QPixmap, QTextCursor
-from PySide6.QtWidgets import QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QPushButton
+from PySide6.QtWidgets import (
+    QAbstractItemDelegate,
+    QAbstractItemView,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QPlainTextEdit,
+    QPushButton,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
+    QTableWidget,
+    QTableWidgetItem,
+    QWidget,
+)
 
 import blisswisdom_roll_call_assistant_sdk as sdk
 from .. import ui_model
@@ -43,8 +57,15 @@ class QMainWindowExt(QMainWindow):
         self.google_api_private_key_line_edit: QLineEdit = getattr(self, 'google_api_private_key_line_edit')
         self.google_api_private_key_line_edit.setText(self.main_window_model.google_api_private_key)
 
-        self.attendance_urls_plain_text_edit: QPlainTextEdit = getattr(self, 'attendance_urls_plain_text_edit')
-        self.attendance_urls_plain_text_edit.setPlainText('\n'.join(self.main_window_model.attendance_urls))
+        self.attendance_report_sheet_links_table_widget: QTableWidget = \
+            getattr(self, 'attendance_report_sheet_links_table_widget')
+        item_delegate: TableItemDelegate = TableItemDelegate(self)
+        item_delegate.closeEditor.connect(self.on_attendance_report_sheet_links_editing_finished)
+        self.attendance_report_sheet_links_table_widget.setItemDelegate(item_delegate)
+        self.attendance_report_sheet_links_table_widget.horizontalHeader().setStretchLastSection(True)
+        self.attendance_report_sheet_links_table_widget.verticalHeader().hide()
+        self.attendance_report_sheet_links_table_widget.setEditTriggers(QAbstractItemView.AllEditTriggers)
+        self.load_attendance_report_links()
 
         self.status_plain_text_edit: QPlainTextEdit = getattr(self, 'status_plain_text_edit')
 
@@ -84,7 +105,7 @@ class QMainWindowExt(QMainWindow):
         self.class_name_line_edit.setEnabled(enabled)
         self.google_api_private_key_id_line_edit.setEnabled(enabled)
         self.google_api_private_key_line_edit.setEnabled(enabled)
-        self.attendance_urls_plain_text_edit.setEnabled(enabled)
+        self.attendance_report_sheet_links_table_widget.setEnabled(enabled)
         self.edit_push_button.setEnabled(not enabled)
         self.save_push_button.setEnabled(enabled)
         self.cancel_push_button.setEnabled(enabled)
@@ -114,7 +135,7 @@ class QMainWindowExt(QMainWindow):
         self.main_window_model.class_name = self.class_name_line_edit.text().strip()
         self.main_window_model.google_api_private_key_id = self.google_api_private_key_id_line_edit.text().strip()
         self.main_window_model.google_api_private_key = self.google_api_private_key_line_edit.text().strip()
-        self.main_window_model.attendance_urls = self.attendance_urls_plain_text_edit.toPlainText().strip().split()
+        self.save_attendance_report_links()
         self.main_window_model.save()
         self.set_edit_enabled(False)
 
@@ -126,7 +147,7 @@ class QMainWindowExt(QMainWindow):
         self.class_name_line_edit.setText(self.main_window_model.class_name)
         self.google_api_private_key_id_line_edit.setText(self.main_window_model.google_api_private_key_id)
         self.google_api_private_key_line_edit.setText(self.main_window_model.google_api_private_key)
-        self.attendance_urls_plain_text_edit.setPlainText('\n'.join(self.main_window_model.attendance_urls))
+        self.load_attendance_report_links()
         self.set_edit_enabled(False)
 
     def on_start_push_button_clicked(self) -> None:
@@ -155,3 +176,61 @@ class QMainWindowExt(QMainWindow):
         self.status_plain_text_edit.moveCursor(QTextCursor.End)
         self.status_plain_text_edit.insertPlainText(
             f'[{datetime.datetime.now().time().strftime("%H:%M:%S")}] {value}\n')
+
+    def on_attendance_report_sheet_links_editing_finished(
+            self, editor: QWidget,
+            hint: QAbstractItemDelegate.EndEditHint = QAbstractItemDelegate.EndEditHint.NoHint) -> None:
+        i: int
+        for i in range(self.attendance_report_sheet_links_table_widget.rowCount() - 1, -1, -1):
+            note: str = self.attendance_report_sheet_links_table_widget.item(i, 0).text()
+            link: str = self.attendance_report_sheet_links_table_widget.item(i, 1).text()
+            if not any([note, link]):
+                self.attendance_report_sheet_links_table_widget.removeRow(i)
+
+        new_row_index: int = self.attendance_report_sheet_links_table_widget.rowCount()
+        self.attendance_report_sheet_links_table_widget.insertRow(new_row_index)
+        self.attendance_report_sheet_links_table_widget.setItem(new_row_index, 0, QTableWidgetItem())
+        self.attendance_report_sheet_links_table_widget.setItem(new_row_index, 1, QTableWidgetItem())
+
+        self.attendance_report_sheet_links_table_widget.resizeColumnToContents(0)
+
+    def load_attendance_report_links(self) -> None:
+        while self.attendance_report_sheet_links_table_widget.rowCount():
+            self.attendance_report_sheet_links_table_widget.removeRow(
+                self.attendance_report_sheet_links_table_widget.rowCount() - 1)
+
+        arsl: sdk.AttendanceReportSheetLink
+        for arsl in self.main_window_model.config.attendance_report_sheet_links:
+            new_row_index: int = self.attendance_report_sheet_links_table_widget.rowCount()
+            self.attendance_report_sheet_links_table_widget.insertRow(new_row_index)
+            self.attendance_report_sheet_links_table_widget.setItem(new_row_index, 0, QTableWidgetItem(arsl.note))
+            self.attendance_report_sheet_links_table_widget.setItem(new_row_index, 1, QTableWidgetItem(arsl.link))
+
+        new_row_index: int = self.attendance_report_sheet_links_table_widget.rowCount()
+        self.attendance_report_sheet_links_table_widget.insertRow(new_row_index)
+        self.attendance_report_sheet_links_table_widget.setItem(new_row_index, 0, QTableWidgetItem())
+        self.attendance_report_sheet_links_table_widget.setItem(new_row_index, 1, QTableWidgetItem())
+
+        self.attendance_report_sheet_links_table_widget.resizeColumnToContents(0)
+
+    def save_attendance_report_links(self) -> None:
+        links: list[sdk.AttendanceReportSheetLink] = list()
+        i: int
+        for i in range(self.attendance_report_sheet_links_table_widget.rowCount()):
+            note: str = self.attendance_report_sheet_links_table_widget.item(i, 0).text()
+            link: str = self.attendance_report_sheet_links_table_widget.item(i, 1).text()
+            if not any([note, link]):
+                continue
+            links.append(sdk.AttendanceReportSheetLink(link=link, note=note))
+        self.main_window_model.config.attendance_report_sheet_links = links
+
+
+# https://stackoverflow.com/a/47893650/1592410
+class TableItemDelegate(QStyledItemDelegate):
+    cellEditingStarted: Signal = Signal(int, int)
+
+    def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QWidget:
+        result: QWidget = super().createEditor(parent, option, index)
+        if result:
+            self.cellEditingStarted.emit(index.row(), index.column())
+        return result

@@ -18,16 +18,40 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="0" column="0">
-     <layout class="QGridLayout" name="gridLayout" rowstretch="6,0,3,0,0,0,1,1" columnstretch="1,0,0,2,0,0,0,1">
+     <layout class="QGridLayout" name="gridLayout" rowstretch="100,0,100,0,0,0,1,1" columnstretch="1,0,0,2,0,0,0,1">
       <item row="5" column="0" rowspan="2" colspan="7">
        <layout class="QGridLayout" name="gridLayout_5">
+        <item row="0" column="0">
+         <widget class="QPushButton" name="edit_push_button">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>14</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>✏️ 編輯</string>
+          </property>
+         </widget>
+        </item>
         <item row="0" column="2">
          <widget class="QPushButton" name="cancel_push_button">
           <property name="enabled">
            <bool>false</bool>
           </property>
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Ignored" vsizetype="Minimum">
+           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -54,7 +78,7 @@
            <bool>false</bool>
           </property>
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Ignored" vsizetype="Minimum">
+           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -75,30 +99,6 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QPushButton" name="edit_push_button">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Ignored" vsizetype="Minimum">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>50</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>14</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>✏️ 編輯</string>
-          </property>
-         </widget>
-        </item>
        </layout>
       </item>
       <item row="2" column="0" rowspan="3" colspan="2">
@@ -115,6 +115,39 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="class_name_label">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>班級名稱：</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLineEdit" name="google_api_private_key_id_line_edit">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>33</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
           </property>
          </widget>
         </item>
@@ -166,18 +199,21 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="0">
-         <widget class="QLabel" name="class_name_label">
+        <item row="3" column="1">
+         <widget class="QLineEdit" name="class_name_line_edit">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>33</height>
+           </size>
+          </property>
           <property name="font">
            <font>
             <pointsize>12</pointsize>
            </font>
-          </property>
-          <property name="text">
-           <string>班級名稱：</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
@@ -202,24 +238,6 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="1">
-         <widget class="QLineEdit" name="class_name_line_edit">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>33</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>12</pointsize>
-           </font>
-          </property>
-         </widget>
-        </item>
         <item row="2" column="1">
          <widget class="QLineEdit" name="character_line_edit">
           <property name="enabled">
@@ -238,6 +256,57 @@
           </property>
          </widget>
         </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="google_api_private_key_id_label">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>私有密鑰 ID：</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="google_api_private_key_label">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>私有密鑰：</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QLineEdit" name="google_api_private_key_line_edit">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>33</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="echoMode">
+           <enum>QLineEdit::PasswordEchoOnEdit</enum>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item row="7" column="0" colspan="7">
@@ -245,7 +314,7 @@
         <item>
          <widget class="QPushButton" name="start_push_button">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Ignored" vsizetype="Minimum">
+           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -272,7 +341,7 @@
            <bool>false</bool>
           </property>
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Ignored" vsizetype="Minimum">
+           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -296,7 +365,7 @@
         <item>
          <widget class="QPushButton" name="log_in_push_button">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Ignored" vsizetype="Minimum">
+           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -321,56 +390,8 @@
       </item>
       <item row="2" column="2" rowspan="3" colspan="5">
        <layout class="QGridLayout" name="gridLayout_4">
-        <item row="1" column="0">
-         <widget class="QLabel" name="google_api_private_key_label">
-          <property name="font">
-           <font>
-            <pointsize>12</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>Google API 私有密鑰：</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLineEdit" name="google_api_private_key_line_edit">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>33</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>12</pointsize>
-           </font>
-          </property>
-          <property name="echoMode">
-           <enum>QLineEdit::PasswordEchoOnEdit</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QPlainTextEdit" name="attendance_urls_plain_text_edit">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>12</pointsize>
-           </font>
-          </property>
-         </widget>
-        </item>
         <item row="2" column="0">
-         <widget class="QLabel" name="attendance_form_links_label">
+         <widget class="QLabel" name="attendance_report_sheet_links_label">
           <property name="font">
            <font>
             <pointsize>12</pointsize>
@@ -384,37 +405,41 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="google_api_private_key_id_label">
-          <property name="font">
-           <font>
-            <pointsize>12</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>Google API 私有密鑰 ID：</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLineEdit" name="google_api_private_key_id_line_edit">
+        <item row="2" column="1">
+         <widget class="QTableWidget" name="attendance_report_sheet_links_table_widget">
           <property name="enabled">
            <bool>false</bool>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>33</height>
-           </size>
-          </property>
           <property name="font">
            <font>
             <pointsize>12</pointsize>
            </font>
           </property>
+          <row>
+           <property name="text">
+            <string/>
+           </property>
+          </row>
+          <column>
+           <property name="text">
+            <string>註記</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>超連結</string>
+           </property>
+          </column>
+          <item row="0" column="0">
+           <property name="text">
+            <string/>
+           </property>
+          </item>
+          <item row="0" column="1">
+           <property name="text">
+            <string/>
+           </property>
+          </item>
          </widget>
         </item>
        </layout>
@@ -458,7 +483,7 @@
         <item row="1" column="0">
          <widget class="QPushButton" name="help_push_button">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Ignored" vsizetype="Minimum">
+           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -499,7 +524,17 @@
   <tabstop>password_line_edit</tabstop>
   <tabstop>character_line_edit</tabstop>
   <tabstop>class_name_line_edit</tabstop>
-  <tabstop>attendance_urls_plain_text_edit</tabstop>
+  <tabstop>google_api_private_key_id_line_edit</tabstop>
+  <tabstop>google_api_private_key_line_edit</tabstop>
+  <tabstop>attendance_report_sheet_links_table_widget</tabstop>
+  <tabstop>edit_push_button</tabstop>
+  <tabstop>save_push_button</tabstop>
+  <tabstop>cancel_push_button</tabstop>
+  <tabstop>start_push_button</tabstop>
+  <tabstop>stop_push_button</tabstop>
+  <tabstop>log_in_push_button</tabstop>
+  <tabstop>help_push_button</tabstop>
+  <tabstop>status_plain_text_edit</tabstop>
  </tabstops>
  <resources/>
  <connections/>

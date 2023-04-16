@@ -54,7 +54,10 @@ class AttendanceSheetHelper:
 
     @classmethod
     def convert_to_date(cls, text: str) -> datetime.date:
-        return datetime.datetime.strptime(text.strip(), '%Y/%m/%d').date()
+        try:
+            return datetime.datetime.strptime(text.strip(), '%Y/%m/%d').date()
+        except ValueError:
+            return datetime.datetime.strptime(text.strip(), '%m/%d/%Y').date()
 
 
 class AttendanceSheet:

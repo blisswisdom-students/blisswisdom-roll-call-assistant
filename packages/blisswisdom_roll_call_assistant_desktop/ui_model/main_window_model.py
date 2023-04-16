@@ -7,6 +7,7 @@ import time
 from typing import Any, Optional
 
 import dacite
+import googleapiclient.errors
 import tomli
 from PySide6.QtCore import QThread
 
@@ -23,6 +24,7 @@ class JobResultCode(enum.IntEnum):
     UNABLE_TO_GET_CLASS_DATE: int = -4
     UNABLE_TO_GET_MEMBER_LIST: int = -5
     UNABLE_TO_ROLL_CALL: int = -6
+    UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET: int = -7
 
 
 @dataclasses.dataclass
@@ -165,6 +167,8 @@ class MainWindowModel(BaseUIModel):
             self.status = '無法登入'
         elif self.job_result.code == JobResultCode.NO_LECTURE_TO_ROLL_CALL:
             self.status = '無上課時程表，不須點名'
+        elif self.job_result.code == JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET:
+            self.status = '無法讀取出勤結果試算表'
         self.status = f'匯入「{"成功" if self.job_result.code > 0 else "失敗"}」'
         self._qthread = None
         self.job_result = JobResult(JobResultCode.UNSET)
@@ -238,6 +242,9 @@ class Start(QThread):
                     attendance_records += sdk.AttendanceSheet(
                         link=arsl.link, google_api_private_key_id=self.config.google_api_private_key_id,
                         google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)
+                except googleapiclient.errors.HttpError:
+                    self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET)
+                    raise
                 except sdk.NoRelevantRowError:
                     pass
 

@@ -223,10 +223,7 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
 
         activated_roll_call_page_helper: ActivatedRollCallPageHelper = \
             ActivatedRollCallPageHelper(self.web_driver, self.action_timeout)
-        res: list[RollCallListMember] = activated_roll_call_page_helper.get_members(no_state)
-        get_logger(__package__).info(f'{len(res)=}, {res=}')
-
-        return res
+        return activated_roll_call_page_helper.get_members(no_state)
 
     def roll_call(self, members: list[RollCallListMember]) -> None:
         self.go_to_activated_roll_call_page()
@@ -390,10 +387,6 @@ class ActivatedRollCallPageHelper(TablePageHelper):
                 for e in self.web_driver.find_elements(
                         *BlissWisdomCommitteePlatformElement.ROLL_CALL_TABLE_STATES.value):
                     v: str = e.find_element(By.XPATH, './input').get_attribute('value')
-                    get_logger(__package__).info(f'{e.find_element(By.XPATH, "./input")=}')
-                    get_logger(__package__).info(f'{e.find_element(By.XPATH, "./input").get_attribute("value")=}')
-                    get_logger(__package__).info(
-                        f'{e.find_element(By.XPATH, "./input").get_property("attributes")[0]=}')
                     if v == 'D':
                         state: RollCallState = RollCallState.PRESENT
                     elif v == 'C':
@@ -430,8 +423,8 @@ class ActivatedRollCallPageHelper(TablePageHelper):
             action_helper.scroll_to(element, offset_y=-100)
             time.sleep(1)
             element.click()
-            time.sleep(3)
             get_logger(__package__).info(f'{member.group_number}-{member.name}: {member.state.value}')
+            time.sleep(3)
 
 
 class ActionHelper:

@@ -168,7 +168,7 @@ class MainWindowModel(BaseUIModel):
         elif self.job_result.code == JobResultCode.NO_LECTURE_TO_ROLL_CALL:
             self.status = '無上課時程表，不須點名'
         elif self.job_result.code == JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET:
-            self.status = '無法讀取出勤結果試算表'
+            self.status = f'無法讀取「{self.job_result.data}」出勤結果'
         self.status = f'匯入「{"成功" if self.job_result.code > 0 else "失敗"}」'
         self._qthread = None
         self.job_result = JobResult(JobResultCode.UNSET)
@@ -243,21 +243,26 @@ class Start(QThread):
                         link=arsl.link, google_api_private_key_id=self.config.google_api_private_key_id,
                         google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)
                 except googleapiclient.errors.HttpError:
-                    self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET)
+                    self.main_window_model.job_result = JobResult(
+                        code=JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET,
+                        data=arsl.note)
                     raise
                 except sdk.NoRelevantRowError:
                     pass
+            sdk.get_logger(__package__).info(f'{attendance_records=}')
 
             try:
-                members: list[sdk.RollCallListMember] = sbwcp.get_activated_roll_call_list_members(no_state=True)
+                roll_call_list_members: list[sdk.RollCallListMember] = \
+                    sbwcp.get_activated_roll_call_list_members(no_state=True)
             except Exception:
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_MEMBER_LIST)
                 raise
+            sdk.get_logger(__package__).info(f'{roll_call_list_members=}')
 
             attendance_list_group_number_name_set: set[str] = set(
                 map(lambda a: f'{a.group_number:02}-{a.name}', attendance_records))
             roll_call_list_group_number_name_set: set[str] = set(
-                map(lambda m: f'{m.group_number:02}-{m.name}', members))
+                map(lambda m: f'{m.group_number:02}-{m.name}', roll_call_list_members))
 
             members_not_on_the_platform: set[str] = \
                 attendance_list_group_number_name_set - roll_call_list_group_number_name_set
@@ -265,14 +270,14 @@ class Start(QThread):
                 roll_call_list_group_number_name_set - attendance_list_group_number_name_set
             if members_not_on_the_platform:
                 self.main_window_model.status = \
-                    f'不在點名系統的學員：{", ".join(sorted(list(members_not_on_the_platform)))}'
+                    f'不在點名系統的人員：{", ".join(sorted(list(members_not_on_the_platform)))}'
             if members_not_on_the_attendance_feedback:
                 self.main_window_model.status = \
                     f'不在出席回條的人員：{", ".join(sorted(list(members_not_on_the_attendance_feedback)))}'
 
             member: sdk.RollCallListMember
             gnum_name_member_dict: dict[str, sdk.RollCallListMember] = \
-                {f'{member.group_number:02}-{member.name}': member for member in members}
+                {f'{member.group_number:02}-{member.name}': member for member in roll_call_list_members}
 
             record: sdk.AttendanceRecord
             for record in attendance_records:
@@ -284,7 +289,7 @@ class Start(QThread):
                     gnum_name_member_dict[key].state = state
 
             try:
-                sbwcp.roll_call(members)
+                sbwcp.roll_call(roll_call_list_members)
             except Exception:
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_ROLL_CALL)
                 raise

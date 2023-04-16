@@ -7,8 +7,6 @@ import tempfile
 
 import pygsheets
 
-from .log import get_logger
-
 
 class NoRelevantRowError(RuntimeError):
     pass
@@ -104,11 +102,7 @@ class AttendanceSheet:
         res: list[AttendanceRecord] = list()
 
         last_relevant_row_index: int = self.get_class_date_index(date)
-        get_logger(__package__).info(f'{last_relevant_row_index=}')
-
         group_number: int = self.get_group_number(last_relevant_row_index)
-        get_logger(__package__).info(f'{group_number=}')
-
         title_row: list[pygsheets.Cell] = self.wks.get_row(1, returnas='cell', include_tailing_empty=False)
         data_row: list[pygsheets.Cell] = self.wks.get_row(
             last_relevant_row_index, returnas='cell', include_tailing_empty=False)
@@ -120,11 +114,7 @@ class AttendanceSheet:
                 continue
 
             name: str = AttendanceSheetHelper.convert_to_name(title_cell.value)
-            get_logger(__package__).info(f'{name=}')
-
             state: AttendanceState = AttendanceState(data_cell.value) if data_cell.value else AttendanceState.ABSENT
-            get_logger(__package__).info(f'{state=}')
-
             res.append(AttendanceRecord(name=name, state=state, group_number=group_number, date=date))
 
         return res

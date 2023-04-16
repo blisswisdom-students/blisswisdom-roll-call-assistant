@@ -210,10 +210,6 @@ class Start(QThread):
                 sbwcp.log_in()
             except Exception:
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_LOG_IN)
-                try:
-                    sbwcp.quit()
-                except Exception:
-                    pass
                 raise
 
             try:
@@ -281,6 +277,12 @@ class Start(QThread):
             sdk.get_logger(__package__).exception(e)
         else:
             self.main_window_model.job_result = JobResult(JobResultCode.SUCCEEDED)
+        finally:
+            time.sleep(3)
+            try:
+                sbwcp.quit()
+            except Exception as e:
+                sdk.get_logger(__package__).exception(e)
 
 
 class LogIn(QThread):
@@ -303,12 +305,12 @@ class LogIn(QThread):
             except Exception:
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_LOG_IN)
                 raise
-            time.sleep(3)
         except Exception as e:
             sdk.get_logger(__package__).exception(e)
         else:
             self.main_window_model.job_result = JobResult(JobResultCode.SUCCEEDED)
         finally:
+            time.sleep(3)
             try:
                 if sbwcp:
                     sbwcp.quit()

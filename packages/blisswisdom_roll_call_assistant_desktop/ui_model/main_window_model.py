@@ -9,7 +9,7 @@ from typing import Any, Optional
 import dacite
 import googleapiclient.errors
 import tomli
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QThread, Signal
 
 import blisswisdom_roll_call_assistant_sdk as sdk
 from .ui_model import BaseUIModel
@@ -154,21 +154,17 @@ class MainWindowModel(BaseUIModel):
         sdk.get_logger(__package__).info('Importing ...')
         self.status = '開始匯入點名資料 ...'
         self._qthread = Start(self)
-        self._qthread.finished.connect(self.on_start_finish)
+        self._qthread.status.connect(self.on_status_updated)
+        self._qthread.finished.connect(self.on_start_finished)
         self.job_result = JobResult(JobResultCode.UNSET)
         self._qthread.start()
 
-    def on_start_finish(self) -> None:
+    def on_status_updated(self, status: str) -> None:
+        self.status = status
+
+    def on_start_finished(self) -> None:
         self.in_progress = False
         sdk.get_logger(__package__).info('Imported' if self.job_result.code > 0 else 'Failed to import')
-        if self.job_result.code == JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER:
-            self.status = '無法啟動瀏覽器'
-        elif self.job_result.code == JobResultCode.UNABLE_TO_LOG_IN:
-            self.status = '無法登入'
-        elif self.job_result.code == JobResultCode.NO_LECTURE_TO_ROLL_CALL:
-            self.status = '無上課時程表，不須點名'
-        elif self.job_result.code == JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET:
-            self.status = f'無法讀取「{self.job_result.data}」出勤結果'
         self.status = f'匯入「{"成功" if self.job_result.code > 0 else "失敗"}」'
         self._qthread = None
         self.job_result = JobResult(JobResultCode.UNSET)
@@ -190,6 +186,7 @@ class MainWindowModel(BaseUIModel):
         sdk.get_logger(__package__).info('Logging in ...')
         self.status = '開始登入 ...'
         self._qthread = LogIn(self)
+        self._qthread.status.connect(self.on_status_updated)
         self._qthread.finished.connect(self.on_log_in_finish)
         self.job_result = JobResult(JobResultCode.UNSET)
         self._qthread.start()
@@ -197,14 +194,15 @@ class MainWindowModel(BaseUIModel):
     def on_log_in_finish(self) -> None:
         self.logging_in = False
         sdk.get_logger(__package__).info('Logged in' if self.job_result.code > 0 else 'Failed to log in')
-        if self.job_result.code == JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER:
-            self.status = '無法啟動瀏覽器'
         self.status = f'登入「{"成功" if self.job_result.code > 0 else "失敗"}」'
         self._qthread = None
         self.job_result = JobResult(JobResultCode.UNSET)
 
 
 class Start(QThread):
+    # https://stackoverflow.com/a/36561787/1592410
+    status: Signal = Signal(str)
+
     def __init__(self, main_window_model: MainWindowModel, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.main_window_model: MainWindowModel = main_window_model
@@ -215,21 +213,29 @@ class Start(QThread):
             try:
                 sbwcp: sdk.SimpleBlissWisdomCommitteePlatform = sdk.SimpleBlissWisdomCommitteePlatform(self.config)
             except Exception:
+                sdk.get_logger(__package__).info('Unable to launch the browser')
+                self.status.emit('無法啟動瀏覽器')
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER)
                 raise
 
             try:
                 sbwcp.log_in()
             except Exception:
+                sdk.get_logger(__package__).info('Unable to log in')
+                self.status.emit('無法登入')
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_LOG_IN)
                 raise
 
             try:
                 date: datetime.date = sbwcp.get_activated_roll_call_class_date()
             except sdk.NoLectureToRollCallError:
+                sdk.get_logger(__package__).info('No lecture to roll call')
+                self.status.emit('無上課時程表，不須點名')
                 self.main_window_model.job_result = JobResult(JobResultCode.NO_LECTURE_TO_ROLL_CALL)
                 raise
             except Exception:
+                sdk.get_logger(__package__).info('Unable to get the class date')
+                self.status.emit('無法取得上課時間')
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_CLASS_DATE)
                 raise
 
@@ -243,18 +249,23 @@ class Start(QThread):
                         link=arsl.link, google_api_private_key_id=self.config.google_api_private_key_id,
                         google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)
                 except googleapiclient.errors.HttpError:
+                    sdk.get_logger(__package__).info('Unable to read the attendance sheet')
+                    self.status.emit(f'無法讀取「{arsl.note}」出勤結果表')
                     self.main_window_model.job_result = JobResult(
                         code=JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET,
                         data=arsl.note)
                     raise
                 except sdk.NoRelevantRowError:
-                    pass
+                    sdk.get_logger(__package__).info('No data of the date in the attendance sheet')
+                    self.status.emit(f'「{arsl.note}」無上課日期出席記錄')
             sdk.get_logger(__package__).info(f'{attendance_records=}')
 
             try:
                 roll_call_list_members: list[sdk.RollCallListMember] = \
                     sbwcp.get_activated_roll_call_list_members(no_state=True)
             except Exception:
+                sdk.get_logger(__package__).info('Unable to obtain the roll call list')
+                self.status.emit(f'無法取得福智學員平臺名單')
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_MEMBER_LIST)
                 raise
             sdk.get_logger(__package__).info(f'{roll_call_list_members=}')
@@ -291,6 +302,8 @@ class Start(QThread):
             try:
                 sbwcp.roll_call(roll_call_list_members)
             except Exception:
+                sdk.get_logger(__package__).info('Unable to roll call')
+                self.status.emit(f'無法匯入出席狀況')
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_ROLL_CALL)
                 raise
         except Exception as e:
@@ -306,6 +319,9 @@ class Start(QThread):
 
 
 class LogIn(QThread):
+    # https://stackoverflow.com/a/36561787/1592410
+    status: Signal = Signal(str)
+
     def __init__(self, main_window_model: MainWindowModel, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.main_window_model: MainWindowModel = main_window_model
@@ -317,12 +333,16 @@ class LogIn(QThread):
             try:
                 sbwcp = sdk.SimpleBlissWisdomCommitteePlatform(self.config)
             except Exception:
+                sdk.get_logger(__package__).info('Unable to launch the browser')
+                self.status.emit('無法啟動瀏覽器')
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER)
                 raise
 
             try:
                 sbwcp.log_in()
             except Exception:
+                sdk.get_logger(__package__).info('Unable to log in')
+                self.status.emit('無法登入')
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_LOG_IN)
                 raise
         except Exception as e:

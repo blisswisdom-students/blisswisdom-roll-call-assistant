@@ -3,7 +3,6 @@ import importlib.resources
 import pathlib
 import webbrowser
 
-from PySide6.QtCore import QModelIndex, Signal
 from PySide6.QtGui import QCloseEvent, QIcon, QPixmap, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractItemDelegate,
@@ -14,7 +13,6 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QStyledItemDelegate,
-    QStyleOptionViewItem,
     QTableWidget,
     QTableWidgetItem,
     QWidget,
@@ -59,7 +57,7 @@ class QMainWindowExt(QMainWindow):
 
         self.attendance_report_sheet_links_table_widget: QTableWidget = \
             getattr(self, 'attendance_report_sheet_links_table_widget')
-        item_delegate: TableItemDelegate = TableItemDelegate(self)
+        item_delegate: QStyledItemDelegate = QStyledItemDelegate(self)
         item_delegate.closeEditor.connect(self.on_attendance_report_sheet_links_editing_finished)
         self.attendance_report_sheet_links_table_widget.setItemDelegate(item_delegate)
         self.attendance_report_sheet_links_table_widget.horizontalHeader().setStretchLastSection(True)
@@ -223,14 +221,3 @@ class QMainWindowExt(QMainWindow):
                 continue
             links.append(sdk.AttendanceReportSheetLink(link=link, note=note))
         self.main_window_model.config.attendance_report_sheet_links = links
-
-
-# https://stackoverflow.com/a/47893650/1592410
-class TableItemDelegate(QStyledItemDelegate):
-    cellEditingStarted: Signal = Signal(int, int)
-
-    def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> QWidget:
-        result: QWidget = super().createEditor(parent, option, index)
-        if result:
-            self.cellEditingStarted.emit(index.row(), index.column())
-        return result

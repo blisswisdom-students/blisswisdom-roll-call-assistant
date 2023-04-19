@@ -271,9 +271,9 @@ class Start(QThread):
             sdk.get_logger(__package__).info(f'{roll_call_list_members=}')
 
             attendance_list_group_number_name_set: set[str] = set(
-                map(lambda a: f'{a.group_number:02}-{a.name}', attendance_records))
+                map(lambda a: f'{a.group_number}-{a.name}', attendance_records))
             roll_call_list_group_number_name_set: set[str] = set(
-                map(lambda m: f'{m.group_number:02}-{m.name}', roll_call_list_members))
+                map(lambda m: f'{m.group_number}-{m.name}', roll_call_list_members))
 
             members_not_on_the_platform: set[str] = \
                 attendance_list_group_number_name_set - roll_call_list_group_number_name_set
@@ -288,14 +288,14 @@ class Start(QThread):
 
             member: sdk.RollCallListMember
             gnum_name_member_dict: dict[str, sdk.RollCallListMember] = \
-                {f'{member.group_number:02}-{member.name}': member for member in roll_call_list_members}
+                {f'{member.group_number}-{member.name}': member for member in roll_call_list_members}
 
             record: sdk.AttendanceRecord
             for record in attendance_records:
                 state: sdk.RollCallState = sdk.RollCallState.PRESENT if \
                     record.state in [sdk.AttendanceState.IN_PERSON, sdk.AttendanceState.ONLINE] else \
                     sdk.RollCallState(record.state.value)
-                key: str = f'{record.group_number:02}-{record.name}'
+                key: str = f'{record.group_number}-{record.name}'
                 if key in gnum_name_member_dict:
                     gnum_name_member_dict[key].state = state
 

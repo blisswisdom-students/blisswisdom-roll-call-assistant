@@ -23,7 +23,7 @@ class AttendanceState(enum.Enum):
 class AttendanceRecord:
     name: str
     state: AttendanceState
-    group_number: int
+    group_number: str
     date: datetime.date
 
 
@@ -40,7 +40,7 @@ class AttendanceSheetHelper:
         return text.strip()
 
     @classmethod
-    def convert_to_group_number(cls, text: str) -> int:
+    def convert_to_group_number(cls, text: str) -> str:
         c: str
         for c in '第':
             if c in text:
@@ -48,7 +48,7 @@ class AttendanceSheetHelper:
         for c in '組':
             if c in text:
                 text = text[:text.index(c)]
-        return int(text.strip())
+        return text.strip()
 
     @classmethod
     def convert_to_date(cls, text: str) -> datetime.date:
@@ -95,14 +95,14 @@ class AttendanceSheet:
             raise NoRelevantRowError
         return last_relevant_row_index
 
-    def get_group_number(self, row_index: int) -> int:
+    def get_group_number(self, row_index: int) -> str:
         return AttendanceSheetHelper.convert_to_group_number(self.wks.cell((row_index, 3)).value_unformatted)
 
     def get_attendance_records_by_date(self, date: datetime.date) -> list[AttendanceRecord]:
         res: list[AttendanceRecord] = list()
 
         last_relevant_row_index: int = self.get_class_date_index(date)
-        group_number: int = self.get_group_number(last_relevant_row_index)
+        group_number: str = self.get_group_number(last_relevant_row_index)
         title_row: list[pygsheets.Cell] = self.wks.get_row(1, returnas='cell', include_tailing_empty=False)
         data_row: list[pygsheets.Cell] = self.wks.get_row(
             last_relevant_row_index, returnas='cell', include_tailing_empty=False)

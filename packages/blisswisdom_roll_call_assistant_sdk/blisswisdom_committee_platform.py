@@ -40,7 +40,7 @@ class RollCallState(enum.Enum):
 @dataclasses.dataclass
 class RollCallListMember:
     name: str
-    group_number: int
+    group_number: str
     page_number: int
     state: Optional[RollCallState]
 
@@ -129,6 +129,10 @@ class UnableToSwitchPageError(RuntimeError):
 
 
 class UnableToGetClassDateError(RuntimeError):
+    pass
+
+
+class UnableToCompleteRollCallError(RuntimeError):
     pass
 
 
@@ -228,8 +232,17 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
         return activated_roll_call_page_helper.get_members(no_state)
 
     def roll_call(self, members: list[RollCallListMember]) -> None:
-        self.go_to_activated_roll_call_page()
-        ActivatedRollCallPageHelper(self.web_driver, self.action_timeout).roll_call(members)
+        processed_members: list[RollCallListMember] = list()
+        for _ in range(10):
+            self.go_to_activated_roll_call_page()
+            processed_members += ActivatedRollCallPageHelper(self.web_driver, self.action_timeout).roll_call(
+                members[len(processed_members):])
+            get_logger(__package__).info(f'{processed_members=}')
+            get_logger(__package__).info(f'{members=}')
+            if processed_members == members:
+                break
+        else:
+            raise UnableToCompleteRollCallError
 
 
 class PageHelper:
@@ -375,10 +388,10 @@ class ActivatedRollCallPageHelper(TablePageHelper):
 
         while True:
             e: WebElement
-            group_numbers: list[int] = list()
+            group_numbers: list[str] = list()
             for e in self.web_driver.find_elements(
                     *BlissWisdomCommitteePlatformElement.ROLL_CALL_TABLE_GROUP_NUMBERS.value):
-                group_numbers.append(int(e.text))
+                group_numbers.append(e.text)
 
             group_names: list[str] = list()
             for e in self.web_driver.find_elements(*BlissWisdomCommitteePlatformElement.ROLL_CALL_TABLE_NAMES.value):
@@ -411,22 +424,26 @@ class ActivatedRollCallPageHelper(TablePageHelper):
             time.sleep(3)
         return res
 
-    def roll_call(self, members: list[RollCallListMember]):
-        member: RollCallListMember
-        for member in members:
-            if not member.state:
-                continue
-            if not self.is_on_page(member.page_number):
-                self.go_to_page(member.page_number)
-            element: WebElement = WebDriverWait(self.web_driver, self.action_timeout).until(
-                EC.element_to_be_clickable(
-                    BlissWisdomCommitteePlatformElement.member_state_radio_button(member)))
-            action_helper: ActionHelper = ActionHelper(self.web_driver)
-            action_helper.scroll_to(element, offset_y=-100)
-            time.sleep(1)
-            element.click()
-            get_logger(__package__).info(f'{member.group_number}-{member.name}: {member.state.value}')
-            time.sleep(3)
+    def roll_call(self, members: list[RollCallListMember]) -> list[RollCallListMember]:
+        processed_members: list[RollCallListMember] = list()
+        try:
+            member: RollCallListMember
+            for member in members:
+                get_logger(__package__).info(f'{member=}')
+                if not self.is_on_page(member.page_number):
+                    self.go_to_page(member.page_number)
+                if member.state:
+                    element: WebElement = WebDriverWait(self.web_driver, self.action_timeout).until(
+                        EC.element_to_be_clickable(
+                            BlissWisdomCommitteePlatformElement.member_state_radio_button(member)))
+                    action_helper: ActionHelper = ActionHelper(self.web_driver)
+                    action_helper.scroll_to(element, offset_y=-100)
+                    element.click()
+                    time.sleep(1)
+                processed_members.append(member)
+        except Exception as e:
+            get_logger(__package__).exception(e)
+        return processed_members
 
 
 class ActionHelper:

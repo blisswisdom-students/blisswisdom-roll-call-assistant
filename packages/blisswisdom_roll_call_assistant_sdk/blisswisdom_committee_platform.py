@@ -6,6 +6,7 @@ import itertools
 import logging
 import os
 import pathlib
+import platform
 import shutil
 import stat
 import subprocess
@@ -13,7 +14,6 @@ import tempfile
 import time
 from typing import Any, Callable, Optional
 
-import easyocr
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
@@ -188,18 +188,20 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
         login_page_helper.input_account(self.config.account)
         login_page_helper.input_password(self.config.password)
 
-        img_base64: str = login_page_helper.get_captcha_base64_image()
-        fd: int
-        f_path: str
-        (fd, f_path) = tempfile.mkstemp(suffix='.png')
-        os.write(fd, base64.b64decode(img_base64))
-        captcha: str = easyocr.Reader(['en'], gpu=False).readtext(f_path, allowlist='0123456789')[0][1]
-        get_logger(__package__).info(f'Captcha: {captcha}')
-        os.close(fd)
-        os.remove(f_path)
+        if platform.system() in ['Linux', 'Windows']:
+            import easyocr
+            img_base64: str = login_page_helper.get_captcha_base64_image()
+            fd: int
+            f_path: str
+            (fd, f_path) = tempfile.mkstemp(suffix='.png')
+            os.write(fd, base64.b64decode(img_base64))
+            captcha: str = easyocr.Reader(['en'], gpu=False).readtext(f_path, allowlist='0123456789')[0][1]
+            get_logger(__package__).info(f'Captcha: {captcha}')
+            os.close(fd)
+            os.remove(f_path)
 
-        login_page_helper.input_captcha(captcha)
-        login_page_helper.click_login_button()
+            login_page_helper.input_captcha(captcha)
+            login_page_helper.click_login_button()
 
         if not login_page_helper.is_logged_in():
             raise UnableToLogInError

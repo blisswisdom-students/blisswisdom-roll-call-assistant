@@ -109,6 +109,19 @@ class BlissWisdomCommitteePlatformElement(enum.Enum):
             f'/parent::td/parent::tr//td/div/div/div/div/div/div/input[@value="{state_value}"]' \
             f'/parent::div/parent::div'
 
+    @classmethod
+    def active_member_state_radio_button(cls, member: RollCallListMember) -> tuple[str, str]:
+        state_value: str = 'B'
+        if member.state == RollCallState.PRESENT:
+            state_value = 'D'
+        elif member.state == RollCallState.LEAVE:
+            state_value = 'C'
+        return By.XPATH, \
+            f'//table[@class="datatable-resultset table-striped"]/tr/td[2]/div[text()="{member.name}"]' \
+            f'/parent::td/preceding-sibling::td/div[text()="{member.group_number}"]' \
+            f'/parent::td/parent::tr//td/div/div/div/div/div/div[contains(@class, " active ")]' \
+            f'/input[@value="{state_value}"]/parent::div/parent::div'
+
 
 class BlissWisdomCommitteePlatformPage(enum.Enum):
     LOGIN: str = 'https://pw.blisswisdom.org/'
@@ -231,12 +244,14 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
             ActivatedRollCallPageHelper(self.web_driver, self.action_timeout)
         return activated_roll_call_page_helper.get_members(no_state)
 
-    def roll_call(self, members: list[RollCallListMember]) -> None:
+    def roll_call(
+            self, members: list[RollCallListMember],
+            processed_call_back: Optional[Callable[[RollCallListMember], None]] = None) -> None:
         processed_members: list[RollCallListMember] = list()
         for _ in range(10):
             self.go_to_activated_roll_call_page()
             processed_members += ActivatedRollCallPageHelper(self.web_driver, self.action_timeout).roll_call(
-                members[len(processed_members):])
+                members[len(processed_members):], processed_call_back)
             get_logger(__package__).info(f'{processed_members=}')
             get_logger(__package__).info(f'{members=}')
             if processed_members == members:
@@ -421,10 +436,12 @@ class ActivatedRollCallPageHelper(TablePageHelper):
                 break
 
             self.go_to_next_page()
-            time.sleep(3)
+            time.sleep(1)
         return res
 
-    def roll_call(self, members: list[RollCallListMember]) -> list[RollCallListMember]:
+    def roll_call(
+            self, members: list[RollCallListMember],
+            processed_call_back: Optional[Callable[[RollCallListMember], None]] = None) -> list[RollCallListMember]:
         processed_members: list[RollCallListMember] = list()
         try:
             member: RollCallListMember
@@ -436,11 +453,21 @@ class ActivatedRollCallPageHelper(TablePageHelper):
                     element: WebElement = WebDriverWait(self.web_driver, self.action_timeout).until(
                         EC.element_to_be_clickable(
                             BlissWisdomCommitteePlatformElement.member_state_radio_button(member)))
-                    action_helper: ActionHelper = ActionHelper(self.web_driver)
-                    action_helper.scroll_to(element, offset_y=-100)
-                    element.click()
-                    time.sleep(1)
+                    already_roll_called: bool = False
+                    try:
+                        self.web_driver.find_element(
+                            *BlissWisdomCommitteePlatformElement.active_member_state_radio_button(member))
+                        already_roll_called: bool = True
+                    except NoSuchElementException:
+                        pass
+                    if not already_roll_called:
+                        action_helper: ActionHelper = ActionHelper(self.web_driver)
+                        action_helper.scroll_to(element, offset_y=-100)
+                        element.click()
+                        time.sleep(1)
                 processed_members.append(member)
+                if processed_call_back:
+                    processed_call_back(member)
         except Exception as e:
             get_logger(__package__).exception(e)
         return processed_members

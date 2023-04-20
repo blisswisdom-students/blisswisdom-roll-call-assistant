@@ -208,6 +208,10 @@ class Start(QThread):
         self.main_window_model: MainWindowModel = main_window_model
         self.config: sdk.Config = main_window_model.config
 
+    def on_member_roll_called(self, member: sdk.RollCallListMember) -> None:
+        sdk.get_logger(__package__).info(f'{member=}')
+        self.status.emit(f'{member.group_number}-{member.name}：{member.state.value if member.state else "無資料"}')
+
     def run(self) -> None:
         try:
             try:
@@ -219,6 +223,8 @@ class Start(QThread):
                 raise
 
             try:
+                sdk.get_logger(__package__).info('Logging in ...')
+                self.status.emit('登入 ...')
                 sbwcp.log_in()
             except Exception:
                 sdk.get_logger(__package__).info('Unable to log in')
@@ -227,6 +233,8 @@ class Start(QThread):
                 raise
 
             try:
+                sdk.get_logger(__package__).info('Detecting the class date ...')
+                self.status.emit('偵測上課時間 ...')
                 date: datetime.date = sbwcp.get_activated_roll_call_class_date()
             except sdk.NoLectureToRollCallError:
                 sdk.get_logger(__package__).info('No lecture to roll call')
@@ -245,6 +253,8 @@ class Start(QThread):
                 if not arsl.link:
                     continue
                 try:
+                    sdk.get_logger(__package__).info(f'Obtaining the member statuses of group {arsl.note} ...')
+                    self.status.emit(f'取得「{arsl.note}」出席狀況 ...')
                     attendance_records += sdk.AttendanceSheet(
                         link=arsl.link, google_api_private_key_id=self.config.google_api_private_key_id,
                         google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)
@@ -257,10 +267,12 @@ class Start(QThread):
                     raise
                 except sdk.NoRelevantRowError:
                     sdk.get_logger(__package__).info('No data of the date in the attendance sheet')
-                    self.status.emit(f'「{arsl.note}」無上課日期出席記錄')
+                    self.status.emit(f'「{arsl.note}」無本次上課出席記錄')
             sdk.get_logger(__package__).info(f'{attendance_records=}')
 
             try:
+                sdk.get_logger(__package__).info('Obtaining the member list on the committee platform ...')
+                self.status.emit('取得學員平臺學員名單 ...')
                 roll_call_list_members: list[sdk.RollCallListMember] = \
                     sbwcp.get_activated_roll_call_list_members(no_state=True)
             except Exception:
@@ -269,22 +281,6 @@ class Start(QThread):
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_MEMBER_LIST)
                 raise
             sdk.get_logger(__package__).info(f'{roll_call_list_members=}')
-
-            attendance_list_group_number_name_set: set[str] = set(
-                map(lambda a: f'{a.group_number}-{a.name}', attendance_records))
-            roll_call_list_group_number_name_set: set[str] = set(
-                map(lambda m: f'{m.group_number}-{m.name}', roll_call_list_members))
-
-            members_not_on_the_platform: set[str] = \
-                attendance_list_group_number_name_set - roll_call_list_group_number_name_set
-            members_not_on_the_attendance_feedback: set[str] = \
-                roll_call_list_group_number_name_set - attendance_list_group_number_name_set
-            if members_not_on_the_platform:
-                self.main_window_model.status = \
-                    f'不在點名系統的人員：{", ".join(sorted(list(members_not_on_the_platform)))}'
-            if members_not_on_the_attendance_feedback:
-                self.main_window_model.status = \
-                    f'不在出席回條的人員：{", ".join(sorted(list(members_not_on_the_attendance_feedback)))}'
 
             member: sdk.RollCallListMember
             gnum_name_member_dict: dict[str, sdk.RollCallListMember] = \
@@ -300,12 +296,30 @@ class Start(QThread):
                     gnum_name_member_dict[key].state = state
 
             try:
-                sbwcp.roll_call(roll_call_list_members)
+                sbwcp.roll_call(roll_call_list_members, self.on_member_roll_called)
             except Exception:
                 sdk.get_logger(__package__).info('Unable to roll call')
                 self.status.emit(f'無法匯入出席狀況')
                 self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_ROLL_CALL)
                 raise
+
+            attendance_list_group_number_name_set: set[str] = set(
+                map(lambda a: f'{a.group_number}-{a.name}', attendance_records))
+            roll_call_list_group_number_name_set: set[str] = set(
+                map(lambda m: f'{m.group_number}-{m.name}', roll_call_list_members))
+
+            members_not_on_the_platform: set[str] = \
+                attendance_list_group_number_name_set - roll_call_list_group_number_name_set
+            members_not_on_the_attendance_feedback: set[str] = \
+                roll_call_list_group_number_name_set - attendance_list_group_number_name_set
+            if members_not_on_the_platform:
+                sdk.get_logger(__package__).info(f'{members_not_on_the_platform=}')
+                self.main_window_model.status = \
+                    f'不在點名系統的人員：{", ".join(sorted(list(members_not_on_the_platform)))}'
+            if members_not_on_the_attendance_feedback:
+                sdk.get_logger(__package__).info(f'{members_not_on_the_attendance_feedback=}')
+                self.main_window_model.status = \
+                    f'不在出席回條的人員：{", ".join(sorted(list(members_not_on_the_attendance_feedback)))}'
         except Exception as e:
             sdk.get_logger(__package__).exception(e)
         else:

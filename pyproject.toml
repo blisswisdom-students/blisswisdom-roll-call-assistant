@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "blisswisdom-roll-call-assistant"
-version = "1.1.4"
+version = "1.1.5"
 description = ""
 authors = ["Johann Chang <mr.changyuheng@gmail.com>"]
 license = "MPL-2.0"

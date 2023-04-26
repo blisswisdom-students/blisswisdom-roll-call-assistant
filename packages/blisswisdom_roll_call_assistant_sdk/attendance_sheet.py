@@ -1,3 +1,4 @@
+import abc
 import dataclasses
 import datetime
 import enum
@@ -9,6 +10,10 @@ import pygsheets
 
 
 class NoRelevantRowError(RuntimeError):
+    pass
+
+
+class UnsupportedSheetError(ValueError):
     pass
 
 
@@ -42,13 +47,7 @@ class AttendanceSheetHelper:
     @classmethod
     def convert_to_group_number(cls, text: str) -> str:
         c: str
-        for c in '第':
-            if c in text:
-                text = text[text.index(c) + 1:]
-        for c in '組':
-            if c in text:
-                text = text[:text.index(c)]
-        return text.strip()
+        return ''.join(c for c in text if c.isdigit())
 
     @classmethod
     def convert_to_date(cls, text: str) -> datetime.date:
@@ -58,31 +57,28 @@ class AttendanceSheetHelper:
             return datetime.datetime.strptime(text.strip(), '%m/%d/%Y').date()
 
 
-class AttendanceSheet:
-    def __init__(self, link: str, google_api_private_key_id: str, google_api_private_key: str) -> None:
-        self.link: str = link
-        self.google_api_private_key_id: str = google_api_private_key_id
-        self.google_api_private_key: str = google_api_private_key
+class BaseAttendanceSheetParser(metaclass=abc.ABCMeta):
+    def __init__(self, wks: pygsheets.Worksheet) -> None:
+        self.wks: pygsheets.Worksheet = wks
 
-        fd: int
-        f_path: str
-        (fd, f_path) = tempfile.mkstemp(suffix='.json')
-        os.write(fd, json.dumps({
-            'type': 'service_account',
-            'project_id': 'bw-roll-call-assistant',
-            'private_key_id': google_api_private_key_id,
-            'private_key': google_api_private_key.replace(r'\n', '\n'),
-            'client_email': 'roll-call-assistant@bw-roll-call-assistant.iam.gserviceaccount.com',
-            'client_id': '109878451176419024232',
-            'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-            'token_uri': 'https://oauth2.googleapis.com/token',
-            'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
-            'client_x509_cert_url': 'https://www.googleapis.com/robot/v1/metadata/x509/'
-                                    'roll-call-assistant%40bw-roll-call-assistant.iam.gserviceaccount.com',
-        }).encode())
-        os.close(fd)
-        self.wks: pygsheets.Worksheet = pygsheets.authorize(service_file=f_path).open_by_url(link).sheet1
+    @abc.abstractmethod
+    def get_group_number(self, row_index: int) -> str:
+        raise NotImplementedError
 
+    @abc.abstractmethod
+    def get_attendance_records_by_date(self, date: datetime.date) -> list[AttendanceRecord]:
+        raise NotImplementedError
+
+
+class AttendanceSheetParser(BaseAttendanceSheetParser):
+    def get_group_number(self, row_index: int) -> str:
+        return ''
+
+    def get_attendance_records_by_date(self, date: datetime.date) -> list[AttendanceRecord]:
+        return list()
+
+
+class AttendanceFormReportSheetParser(BaseAttendanceSheetParser):
     def get_class_date_index(self, date: datetime.date) -> int:
         last_relevant_row_index: int = 0
         for i, cell in enumerate(self.wks.get_col(
@@ -118,3 +114,40 @@ class AttendanceSheet:
             res.append(AttendanceRecord(name=name, state=state, group_number=group_number, date=date))
 
         return res
+
+
+class AttendanceSheetParserBuilder:
+    def __init__(self, link: str, google_api_private_key_id: str, google_api_private_key: str) -> None:
+        self.link: str = link
+        self.google_api_private_key_id: str = google_api_private_key_id
+        self.google_api_private_key: str = google_api_private_key
+
+        fd: int
+        f_path: str
+        (fd, f_path) = tempfile.mkstemp(suffix='.json')
+        os.write(fd, json.dumps({
+            'type': 'service_account',
+            'project_id': 'bw-roll-call-assistant',
+            'private_key_id': google_api_private_key_id,
+            'private_key': google_api_private_key.replace(r'\n', '\n'),
+            'client_email': 'roll-call-assistant@bw-roll-call-assistant.iam.gserviceaccount.com',
+            'client_id': '109878451176419024232',
+            'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+            'token_uri': 'https://oauth2.googleapis.com/token',
+            'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
+            'client_x509_cert_url': 'https://www.googleapis.com/robot/v1/metadata/x509/'
+                                    'roll-call-assistant%40bw-roll-call-assistant.iam.gserviceaccount.com',
+        }).encode())
+        os.close(fd)
+        self.wks: pygsheets.Worksheet = pygsheets.authorize(service_file=f_path).open_by_url(link).sheet1
+        os.remove(f_path)
+
+    def build(self) -> BaseAttendanceSheetParser:
+        first_cell_value: str = self.wks.cell((1, 1)).value
+        v: str
+        if any([first_cell_value.lower().endswith(v) for v in (' am', ' pm')]) or \
+                any([first_cell_value.startswith(v) for v in ('上午 ', '下午 ')]):
+            return AttendanceSheetParser(self.wks)
+        if first_cell_value in ['Timestamp', '時間戳記']:
+            return AttendanceFormReportSheetParser(self.wks)
+        raise UnsupportedSheetError

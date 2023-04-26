@@ -255,9 +255,10 @@ class Start(QThread):
                 try:
                     sdk.get_logger(__package__).info(f'Obtaining the member statuses of group {arsl.note} ...')
                     self.status.emit(f'取得「{arsl.note}」出席狀況 ...')
-                    attendance_records += sdk.AttendanceSheet(
+                    attendance_records += sdk.AttendanceSheetParserBuilder(
                         link=arsl.link, google_api_private_key_id=self.config.google_api_private_key_id,
-                        google_api_private_key=self.config.google_api_private_key).get_attendance_records_by_date(date)
+                        google_api_private_key=self.config.google_api_private_key).build() \
+                        .get_attendance_records_by_date(date)
                 except googleapiclient.errors.HttpError:
                     sdk.get_logger(__package__).info('Unable to read the attendance sheet')
                     self.status.emit(f'無法讀取「{arsl.note}」出勤結果表')

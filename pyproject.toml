@@ -16,10 +16,10 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.7, <3.11"
 dacite = "^1.8.0"
-easyocr = [
-    {version = "^1.6.2", platform = "linux"},
-    {version = "^1.6.2", platform = "win32"},
-]
+# easyocr = [
+#     {version = "^1.6.2", platform = "linux"},
+#     {version = "^1.6.2", platform = "win32"},
+# ]
 pygsheets = "^2.0.6"
 PySide6 = "^6.5.0"
 selenium = "^4.8.3"

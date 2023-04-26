@@ -5,6 +5,7 @@ import enum
 import json
 import os
 import tempfile
+import re
 
 import pygsheets
 
@@ -50,6 +51,12 @@ class AttendanceSheetHelper:
         return ''.join(c for c in text if c.isdigit())
 
     @classmethod
+    def parse_group_number(cls, text: str) -> str:
+        # find str as '第 5 組清涼組'
+        m = re.search(r'第\s*(?P<gnumber>[1-9])\s*組.*', text)
+        return m.group('gnumber') if m else ''
+
+    @classmethod
     def convert_to_date(cls, text: str) -> datetime.date:
         try:
             return datetime.datetime.strptime(text.strip(), '%Y/%m/%d').date()
@@ -75,7 +82,35 @@ class AttendanceSheetParser(BaseAttendanceSheetParser):
         return ''
 
     def get_attendance_records_by_date(self, date: datetime.date) -> list[AttendanceRecord]:
-        return list()
+        res: list[AttendanceRecord] = list()
+
+        status_row_index: int
+        for c in self.wks.get_row(1, returnas='cell', include_tailing_empty=False):
+            try:
+                if datetime.datetime.strptime(c.value, '%m/%d/%Y') == date:
+                    status_row_index = c.col
+                    break
+            except ValueError as e:
+                continue
+        else:
+            raise NoRelevantRowError
+
+        names_row = self.wks.get_col(1, returnas='cell', include_tailing_empty=False)
+        state_row = self.wks.get_col(status_row_index, returnas='cell', include_tailing_empty=False)
+        group_number: str = ''
+        for n, s in zip(names_row[1:], state_row[1:]):
+            if not n.value:
+                continue
+            g_num: str = AttendanceSheetHelper.parse_group_number(n.value)
+            if g_num:
+                group_number = g_num
+                continue
+
+            name: str = AttendanceSheetHelper.convert_to_name(n.value)
+            state: AttendanceState = AttendanceState(s.value) if s.value else AttendanceState.ABSENT
+            res.append(AttendanceRecord(name=name, state=state, group_number=group_number, date=date))
+
+        return res
 
 
 class AttendanceFormReportSheetParser(BaseAttendanceSheetParser):

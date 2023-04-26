@@ -5,12 +5,11 @@ import enum
 import json
 import os
 import tempfile
-import re
 
 import pygsheets
 
 
-class NoRelevantRowError(RuntimeError):
+class NoRelevantStatusError(RuntimeError):
     pass
 
 
@@ -23,6 +22,7 @@ class AttendanceState(enum.Enum):
     ONLINE: str = '線上'
     LEAVE: str = '請假'
     ABSENT: str = '未出席'
+    UNKNOWN: str = '不明'
 
 
 @dataclasses.dataclass
@@ -51,17 +51,23 @@ class AttendanceSheetHelper:
         return ''.join(c for c in text if c.isdigit())
 
     @classmethod
-    def parse_group_number(cls, text: str) -> str:
-        # find str as '第 5 組清涼組'
-        m = re.search(r'第\s*(?P<gnumber>[1-9])\s*組.*', text)
-        return m.group('gnumber') if m else ''
-
-    @classmethod
     def convert_to_date(cls, text: str) -> datetime.date:
         try:
             return datetime.datetime.strptime(text.strip(), '%Y/%m/%d').date()
         except ValueError:
             return datetime.datetime.strptime(text.strip(), '%m/%d/%Y').date()
+
+    @classmethod
+    def convert_to_state_value(cls, text: str) -> str:
+        value: str = text.strip()
+        state: AttendanceState
+        for state in AttendanceState:
+            if value.startswith(state.value):
+                value = value[:len(state.value)]
+                break
+        else:
+            value = AttendanceState.UNKNOWN.value
+        return value
 
 
 class BaseAttendanceSheetParser(metaclass=abc.ABCMeta):
@@ -69,79 +75,72 @@ class BaseAttendanceSheetParser(metaclass=abc.ABCMeta):
         self.wks: pygsheets.Worksheet = wks
 
     @abc.abstractmethod
-    def get_group_number(self, row_index: int) -> str:
-        raise NotImplementedError
-
-    @abc.abstractmethod
     def get_attendance_records_by_date(self, date: datetime.date) -> list[AttendanceRecord]:
         raise NotImplementedError
 
 
 class AttendanceSheetParser(BaseAttendanceSheetParser):
-    def get_group_number(self, row_index: int) -> str:
-        return ''
+    def get_relevant_data_index(self, date: datetime.date) -> int:
+        relevant_column_index: int
+        cell: pygsheets.Cell
+        for cell in self.wks.get_row(1, returnas='cell', include_tailing_empty=False)[1:]:
+            if AttendanceSheetHelper.convert_to_date(cell.value) == date:
+                relevant_column_index = cell.col
+                break
+        else:
+            raise NoRelevantStatusError
+        return relevant_column_index
+
+    def get_group_number(self) -> str:
+        return AttendanceSheetHelper.convert_to_group_number(self.wks.cell((2, 1)).value)
 
     def get_attendance_records_by_date(self, date: datetime.date) -> list[AttendanceRecord]:
         res: list[AttendanceRecord] = list()
-
-        status_row_index: int
-        for c in self.wks.get_row(1, returnas='cell', include_tailing_empty=False):
-            try:
-                if datetime.datetime.strptime(c.value, '%m/%d/%Y') == date:
-                    status_row_index = c.col
-                    break
-            except ValueError as e:
+        name_cells: list[pygsheets.Cell] = self.wks.get_col(1, returnas='cell', include_tailing_empty=False)[2:]
+        state_cells: list[pygsheets.Cell] = self.wks.get_col(
+            self.get_relevant_data_index(date), returnas='cell', include_tailing_empty=False)[2:]
+        group_number: str = self.get_group_number()
+        name_cell: pygsheets.Cell
+        state_cell: pygsheets.Cell
+        for name_cell, state_cell in zip(name_cells, state_cells):
+            if not name_cell.value:
                 continue
-        else:
-            raise NoRelevantRowError
-
-        names_row = self.wks.get_col(1, returnas='cell', include_tailing_empty=False)
-        state_row = self.wks.get_col(status_row_index, returnas='cell', include_tailing_empty=False)
-        group_number: str = ''
-        for n, s in zip(names_row[1:], state_row[1:]):
-            if not n.value:
-                continue
-            g_num: str = AttendanceSheetHelper.parse_group_number(n.value)
-            if g_num:
-                group_number = g_num
-                continue
-
-            name: str = AttendanceSheetHelper.convert_to_name(n.value)
-            state: AttendanceState = AttendanceState(s.value) if s.value else AttendanceState.ABSENT
+            name: str = AttendanceSheetHelper.convert_to_name(name_cell.value)
+            state: AttendanceState = AttendanceState(AttendanceSheetHelper.convert_to_state_value(
+                state_cell.value)) if state_cell.value else AttendanceState.ABSENT
             res.append(AttendanceRecord(name=name, state=state, group_number=group_number, date=date))
-
         return res
 
 
 class AttendanceFormReportSheetParser(BaseAttendanceSheetParser):
-    def get_class_date_index(self, date: datetime.date) -> int:
-        last_relevant_row_index: int = 0
+    def get_relevant_data_index(self, date: datetime.date) -> int:
+        last_relevant_row_index: int
         cell: pygsheets.Cell
         for cell in self.wks.get_col(
                 2, returnas='cells', include_tailing_empty=False,
                 date_time_render_option=pygsheets.DateTimeRenderOption.FORMATTED_STRING)[1:]:
-            if AttendanceSheetHelper.convert_to_date(cell.value) != date:
-                continue
-            last_relevant_row_index = cell.row
-        if last_relevant_row_index == 0:
-            raise NoRelevantRowError
+            if AttendanceSheetHelper.convert_to_date(cell.value) == date:
+                last_relevant_row_index = cell.row
+                break
+        else:
+            raise NoRelevantStatusError
         return last_relevant_row_index
 
-    def get_group_number(self, row_index: int) -> str:
+    def get_group_number_from_row(self, row_index: int) -> str:
         return AttendanceSheetHelper.convert_to_group_number(self.wks.cell((row_index, 3)).value_unformatted)
 
     def get_attendance_records_by_date(self, date: datetime.date) -> list[AttendanceRecord]:
         res: list[AttendanceRecord] = list()
 
-        last_relevant_row_index: int = self.get_class_date_index(date)
-        group_number: str = self.get_group_number(last_relevant_row_index)
+        last_relevant_row_index: int = self.get_relevant_data_index(date)
+        group_number: str = self.get_group_number_from_row(last_relevant_row_index)
         title_row: list[pygsheets.Cell] = self.wks.get_row(1, returnas='cell', include_tailing_empty=False)
         data_row: list[pygsheets.Cell] = self.wks.get_row(
             last_relevant_row_index, returnas='cell', include_tailing_empty=False)
 
         title_cell: pygsheets.Cell
         data_cell: pygsheets.Cell
-        for (title_cell, data_cell) in zip(title_row, data_row):
+        for title_cell, data_cell in zip(title_row, data_row):
             if not title_cell.value.startswith('出席記錄 ['):
                 continue
 

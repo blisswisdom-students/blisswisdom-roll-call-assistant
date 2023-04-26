@@ -266,7 +266,7 @@ class Start(QThread):
                         code=JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET,
                         data=arsl.note)
                     raise
-                except sdk.NoRelevantRowError:
+                except sdk.NoRelevantStatusError:
                     sdk.get_logger(__package__).info('No data of the date in the attendance sheet')
                     self.status.emit(f'「{arsl.note}」無本次上課出席記錄')
             sdk.get_logger(__package__).info(f'{attendance_records=}')

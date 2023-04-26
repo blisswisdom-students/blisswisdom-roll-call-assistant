@@ -35,6 +35,7 @@ class RollCallState(enum.Enum):
     PRESENT: str = '出席'
     LEAVE: str = '請假'
     ABSENT: str = '未出席'
+    UNKNOWN: str = '不明'
 
 
 @dataclasses.dataclass
@@ -398,7 +399,7 @@ class ActivatedRollCallPageHelper(TablePageHelper):
             raise UnableToGetClassDateError
         return date
 
-    def get_members(self, no_state: bool = False) -> list[RollCallListMember]:
+    def get_members(self, ignore_state: bool = False) -> list[RollCallListMember]:
         res: list[RollCallListMember] = list()
 
         while True:
@@ -413,7 +414,7 @@ class ActivatedRollCallPageHelper(TablePageHelper):
                 group_names.append(e.text)
 
             states: list[RollCallState] = list()
-            if not no_state:
+            if not ignore_state:
                 for e in self.web_driver.find_elements(
                         *BlissWisdomCommitteePlatformElement.ROLL_CALL_TABLE_STATES.value):
                     v: str = e.find_element(By.XPATH, './input').get_attribute('value')
@@ -430,7 +431,7 @@ class ActivatedRollCallPageHelper(TablePageHelper):
                 zip(group_names,
                     group_numbers,
                     itertools.repeat(self.get_current_page()),
-                    itertools.repeat(None) if no_state else states))
+                    itertools.repeat(None) if ignore_state else states))
 
             if self.is_on_last_page():
                 break

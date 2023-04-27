@@ -96,18 +96,18 @@ class AttendanceSheetParser(BaseAttendanceSheetParser):
 
     def get_attendance_records_by_date(self, date: datetime.date) -> list[AttendanceRecord]:
         res: list[AttendanceRecord] = list()
-        name_cells: list[pygsheets.Cell] = self.wks.get_col(1, returnas='cell', include_tailing_empty=False)[2:]
-        state_cells: list[pygsheets.Cell] = self.wks.get_col(
+        name_column: list[pygsheets.Cell] = self.wks.get_col(1, returnas='cell', include_tailing_empty=False)[2:]
+        state_column: list[pygsheets.Cell] = self.wks.get_col(
             self.get_relevant_data_index(date), returnas='cell', include_tailing_empty=False)[2:]
         group_number: str = self.get_group_number()
-        name_cell: pygsheets.Cell
-        state_cell: pygsheets.Cell
-        for name_cell, state_cell in zip(name_cells, state_cells):
-            if not name_cell.value:
+        name_column_cell: pygsheets.Cell
+        state_column_cell: pygsheets.Cell
+        for name_column_cell, state_column_cell in zip(name_column, state_column):
+            if not name_column_cell.value:
                 continue
-            name: str = AttendanceSheetHelper.convert_to_name(name_cell.value)
+            name: str = AttendanceSheetHelper.convert_to_name(name_column_cell.value)
             state: AttendanceState = AttendanceState(AttendanceSheetHelper.convert_to_state_value(
-                state_cell.value)) if state_cell.value else AttendanceState.ABSENT
+                state_column_cell.value)) if state_column_cell.value else AttendanceState.ABSENT
             res.append(AttendanceRecord(name=name, state=state, group_number=group_number, date=date))
         return res
 

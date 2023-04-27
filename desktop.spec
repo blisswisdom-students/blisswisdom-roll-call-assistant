@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import os
+import pathlib
 import platform
 import sys
 
@@ -10,7 +11,7 @@ sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
 block_cipher = None
 qt_plugins_path = (os.path.join('.venv', 'Lib', 'site-packages', 'PySide6', 'plugins'), os.path.join('PySide6', 'plugins')) if os.name == 'nt' \
-    else (os.path.join('.venv', 'lib', 'python3.10', 'site-packages', 'PySide6', 'Qt', 'plugins'), os.path.join('PySide6', 'Qt', 'plugins'))
+    else (str(list(pathlib.Path().glob('.venv/lib/python*/site-packages/PySide6/Qt/plugins'))[-1]), os.path.join('PySide6', 'Qt', 'plugins'))
 
 a = Analysis(
     [os.path.join('.venv', ('Scripts' if os.name == 'nt' else 'bin'), 'blisswisdom-roll-call-assistant-desktop')],

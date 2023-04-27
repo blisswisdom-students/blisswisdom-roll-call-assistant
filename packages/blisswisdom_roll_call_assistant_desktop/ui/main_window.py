@@ -32,6 +32,7 @@ class QMainWindowExt(QMainWindow):
         self.main_window_model.add_on_changed_observer(self.on_in_progress_changed, 'in_progress')
         self.main_window_model.add_on_changed_observer(self.on_logging_in_changed, 'logging_in')
         self.main_window_model.add_on_changed_observer(self.on_status_changed, 'status')
+        self.main_window_model.add_on_changed_observer(self.on_captcha_path_changed, 'captcha_path')
 
         self.setWindowTitle(f'{sdk.PROG_NAME} {sdk.VERSION}')
 
@@ -87,6 +88,14 @@ class QMainWindowExt(QMainWindow):
 
         self.help_push_button: QPushButton = getattr(self, 'help_push_button')
         self.help_push_button.clicked.connect(self.on_help_push_button_clicked)
+
+        self.captcha_label: QLabel = getattr(self, 'captcha_label')
+
+        self.send_captcha_push_button: QPushButton = getattr(self, 'send_captcha_push_button')
+        self.send_captcha_push_button.clicked.connect(self.on_send_captcha_push_button_clicked)
+
+        self.captcha_line_edit: QLineEdit = getattr(self, 'captcha_line_edit')
+        self.captcha_line_edit.returnPressed.connect(self.send_captcha_push_button.click)
 
         app_icon: pathlib.Path
         with importlib.resources.path(__package__, 'icon.ico') as app_icon:
@@ -160,6 +169,11 @@ class QMainWindowExt(QMainWindow):
         sdk.get_logger(__package__).info('Log in clicked')
         self.main_window_model.log_in()
 
+    def on_send_captcha_push_button_clicked(self) -> None:
+        sdk.get_logger(__package__).info('Send captcha clicked')
+        with self.main_window_model.captcha_lock:
+            self.main_window_model.captcha = self.captcha_line_edit.text()
+
     def on_help_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Help clicked')
         webbrowser.open('https://github.com/changyuheng/blisswisdom-roll-call-assistant/issues')
@@ -174,6 +188,19 @@ class QMainWindowExt(QMainWindow):
         self.status_plain_text_edit.moveCursor(QTextCursor.End)
         self.status_plain_text_edit.insertPlainText(
             f'[{datetime.datetime.now().time().strftime("%H:%M:%S")}] {value}\n')
+
+    def on_captcha_path_changed(self, value: pathlib.Path) -> None:
+        self.captcha_label.clear()
+        self.captcha_line_edit.clear()
+        self.send_captcha_push_button.setEnabled(False)
+        self.captcha_line_edit.setEnabled(False)
+        if value:
+            self.captcha_label.setPixmap(QPixmap(value))
+            self.send_captcha_push_button.setEnabled(True)
+            self.captcha_line_edit.setEnabled(True)
+            self.activateWindow()
+            self.raise_()
+            self.captcha_line_edit.setFocus()
 
     def on_attendance_report_sheet_links_editing_finished(
             self, editor: QWidget,

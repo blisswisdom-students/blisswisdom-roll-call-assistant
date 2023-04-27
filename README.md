@@ -69,7 +69,7 @@ https://user-images.githubusercontent.com/1842626/232291434-848dc53c-09f3-42cd-9
 
 ### Environment
 
-1. [Python](https://www.python.org/) 3.10
+1. [Python](https://www.python.org/) 3.11
 2. [Poetry](https://python-poetry.org/)
 3. [PyCharm](https://www.jetbrains.com/pycharm/)
 4. [Git](https://git-scm.com/)
@@ -82,12 +82,6 @@ https://user-images.githubusercontent.com/1842626/232291434-848dc53c-09f3-42cd-9
 
 ```
 poetry install
-```
-
-#### Windows Only
-
-```
-poetry run pip install numpy --upgrade  # EasyOCR depends on an older version of numpy, which is not compatible with our development environment.
 ```
 
 ### Run
@@ -121,7 +115,6 @@ poetry run pyinstaller --clean desktop.spec
 
 1. [Qt for Python](https://www.qt.io/qt-for-python)
 2. [Selenium](https://www.selenium.dev/)
-3. [EasyOCR](https://github.com/JaidedAI/EasyOCR)
 
 ## License
 

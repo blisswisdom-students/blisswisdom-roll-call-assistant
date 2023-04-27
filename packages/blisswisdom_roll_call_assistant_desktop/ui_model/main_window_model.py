@@ -3,6 +3,7 @@ import datetime
 import enum
 import io
 import pathlib
+import threading
 import time
 from typing import Any, Optional
 
@@ -41,6 +42,9 @@ class MainWindowModel(BaseUIModel):
         self._logging_in: bool = False
         self._status: str = ''
         self.job_result: JobResult = JobResult(JobResultCode.UNSET)
+        self.captcha: str = ''
+        self._captcha_path: Optional[pathlib.Path] = None
+        self.captcha_lock: threading.Lock = threading.Lock()
 
         self.config: Optional[sdk.Config] = None
         self.config_path: pathlib.Path = config_path
@@ -142,6 +146,14 @@ class MainWindowModel(BaseUIModel):
     def attendance_report_sheet_links(self, value: list[sdk.AttendanceReportSheetLink]) -> None:
         self.config.attendance_report_sheet_links = value
 
+    @property
+    def captcha_path(self) -> pathlib.Path:
+        return self._captcha_path
+
+    @captcha_path.setter
+    def captcha_path(self, value: pathlib.Path) -> None:
+        self._captcha_path = value
+
     def save(self) -> None:
         self.config.save(self.config_path)
 
@@ -167,6 +179,8 @@ class MainWindowModel(BaseUIModel):
         sdk.get_logger(__package__).info('Imported' if self.job_result.code > 0 else 'Failed to import')
         self.status = f'匯入「{"成功" if self.job_result.code > 0 else "失敗"}」'
         self._qthread = None
+        self.captcha = ''
+        self.captcha_path = None
         self.job_result = JobResult(JobResultCode.UNSET)
 
     def stop(self) -> None:
@@ -175,6 +189,8 @@ class MainWindowModel(BaseUIModel):
         if self._qthread:
             self._qthread.terminate()
             self._qthread = None
+            self.captcha = ''
+            self.captcha_path = None
             self.job_result = JobResult(JobResultCode.UNSET)
 
     def log_in(self) -> None:
@@ -187,16 +203,29 @@ class MainWindowModel(BaseUIModel):
         self.status = '開始登入 ...'
         self._qthread = LogIn(self)
         self._qthread.status.connect(self.on_status_updated)
-        self._qthread.finished.connect(self.on_log_in_finish)
+        self._qthread.finished.connect(self.on_log_in_finished)
         self.job_result = JobResult(JobResultCode.UNSET)
         self._qthread.start()
 
-    def on_log_in_finish(self) -> None:
+    def on_log_in_finished(self) -> None:
         self.logging_in = False
         sdk.get_logger(__package__).info('Logged in' if self.job_result.code > 0 else 'Failed to log in')
         self.status = f'登入「{"成功" if self.job_result.code > 0 else "失敗"}」'
         self._qthread = None
+        self.captcha = ''
+        self.captcha_path = None
         self.job_result = JobResult(JobResultCode.UNSET)
+
+    def on_captcha_got(self, captcha_path: pathlib.Path) -> str:
+        self.captcha_path = captcha_path
+        while True:
+            with self.captcha_lock:
+                if self.captcha:
+                    return self.captcha
+            time.sleep(0.1)
+
+    def on_captcha_sent(self) -> None:
+        self.captcha_path = None
 
 
 class Start(QThread):
@@ -225,7 +254,7 @@ class Start(QThread):
             try:
                 sdk.get_logger(__package__).info('Logging in ...')
                 self.status.emit('登入 ...')
-                sbwcp.log_in()
+                sbwcp.log_in(self.main_window_model.on_captcha_got, self.main_window_model.on_captcha_sent)
             except Exception:
                 sdk.get_logger(__package__).info('Unable to log in')
                 self.status.emit('無法登入')
@@ -320,7 +349,7 @@ class Start(QThread):
             if members_not_on_the_attendance_feedback:
                 sdk.get_logger(__package__).info(f'{members_not_on_the_attendance_feedback=}')
                 self.main_window_model.status = \
-                    f'不在出席回條的人員：{", ".join(sorted(list(members_not_on_the_attendance_feedback)))}'
+                    f'不在出席記錄試算表的人員：{", ".join(sorted(list(members_not_on_the_attendance_feedback)))}'
         except Exception as e:
             sdk.get_logger(__package__).exception(e)
         else:
@@ -354,7 +383,7 @@ class LogIn(QThread):
                 raise
 
             try:
-                sbwcp.log_in()
+                sbwcp.log_in(self.main_window_model.on_captcha_got, self.main_window_model.on_captcha_sent)
             except Exception:
                 sdk.get_logger(__package__).info('Unable to log in')
                 self.status.emit('無法登入')

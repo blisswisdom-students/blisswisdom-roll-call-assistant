@@ -1,4 +1,4 @@
-# import base64
+import base64
 import dataclasses
 import datetime
 import enum
@@ -6,11 +6,10 @@ import itertools
 import logging
 import os
 import pathlib
-# import platform
 import shutil
 import stat
 import subprocess
-# import tempfile
+import tempfile
 import time
 from typing import Any, Callable, Optional
 
@@ -199,27 +198,25 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
         self.config: Config = config
         self.web_driver.maximize_window()
 
-    def log_in(self) -> None:
+    def log_in(self, on_captcha_got: Callable[[pathlib.Path], str], on_captcha_sent: Callable[[None], None]) -> None:
         self.web_driver.get(BlissWisdomCommitteePlatformPage.LOGIN.value)
 
         login_page_helper: LoginPageHelper = LoginPageHelper(self.web_driver, self.action_timeout)
         login_page_helper.input_account(self.config.account)
         login_page_helper.input_password(self.config.password)
 
-        # if platform.system() in ['Linux', 'Windows']:
-        #     import easyocr
-        #     img_base64: str = login_page_helper.get_captcha_base64_image()
-        #     fd: int
-        #     f_path: str
-        #     (fd, f_path) = tempfile.mkstemp(suffix='.png')
-        #     os.write(fd, base64.b64decode(img_base64))
-        #     captcha: str = easyocr.Reader(['en'], gpu=False).readtext(f_path, allowlist='0123456789')[0][1]
-        #     get_logger(__package__).info(f'Captcha: {captcha}')
-        #     os.close(fd)
-        #     os.remove(f_path)
-        #
-        #     login_page_helper.input_captcha(captcha)
-        #     login_page_helper.click_login_button()
+        img_base64: str = login_page_helper.get_captcha_base64_image()
+        fd: int
+        f_path: str
+        (fd, f_path) = tempfile.mkstemp(suffix='.png')
+        os.write(fd, base64.b64decode(img_base64))
+        captcha: str = on_captcha_got(pathlib.Path(f_path))
+        os.close(fd)
+        os.remove(f_path)
+
+        login_page_helper.input_captcha(captcha)
+        login_page_helper.click_login_button()
+        on_captcha_sent()
 
         if not login_page_helper.is_logged_in():
             raise UnableToLogInError
@@ -291,7 +288,7 @@ class LoginPageHelper(PageHelper):
 
     def is_logged_in(self) -> bool:
         try:
-            WebDriverWait(self.web_driver, self.action_timeout * 3).until(
+            WebDriverWait(self.web_driver, self.action_timeout).until(
                 EC.element_to_be_clickable(BlissWisdomCommitteePlatformElement.LOGOUT_BUTTON.value))
             return True
         except TimeoutException:

@@ -29,6 +29,7 @@ def main() -> int:
         main_window: ui.QMainWindowExt = ui_loader.load(ui_file)
         ui_file.close()
 
+    main_window.setWindowFlag(Qt.WindowStaysOnTopHint)
     main_window.set_up(ui_model.MainWindowModel(sdk.get_entry_file_path().parent / f'{sdk.PROG_NAME}.toml'))
     sdk.get_logger(__package__).info('Showing the main window')
     main_window.show()

@@ -40,7 +40,7 @@ https://user-images.githubusercontent.com/1842626/232291434-848dc53c-09f3-42cd-9
 | 作業系統                                                                | 執行檔名稱                 |
 | ----------------------------------------------------------------------- | -------------------------- |
 | [Windows](https://www.microsoft.com/windows/)                           | `福智學員平臺點名助手.exe` |
-| [macOS](https://www.apple.com/macos/)                                   | `福智學員平臺點名助手.app` |
+| [macOS](https://www.apple.com/macos/)                                   | `福智學員平臺點名助手`     |
 | [Linux distributions](https://en.wikipedia.org/wiki/Linux_distribution) | `福智學員平臺點名助手`     |
 
 ### 設定
@@ -55,9 +55,10 @@ https://user-images.githubusercontent.com/1842626/232291434-848dc53c-09f3-42cd-9
 
    ![](docs/config-3.png)
 
-3. 在「超連結」欄位輸入各「小組點名表問卷 (回覆)」試算表的連結
+3. 在「超連結」欄位輸入各組「組員出席記錄」試算表的連結
 
    ![](docs/config-4.png)
+   ![](docs/config-5.png)
 
 ## 點名文件設置及操作流程說明
 

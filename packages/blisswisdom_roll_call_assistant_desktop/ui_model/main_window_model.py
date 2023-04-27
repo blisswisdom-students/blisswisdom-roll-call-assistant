@@ -3,17 +3,15 @@ import datetime
 import enum
 import io
 import pathlib
-import threading
 import time
 from typing import Any, Optional
 
 import dacite
 import googleapiclient.errors
 import tomli
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QMutex, QObject, QThread, Signal
 
 import blisswisdom_roll_call_assistant_sdk as sdk
-from .ui_model import BaseUIModel
 
 
 class JobResultCode(enum.IntEnum):
@@ -34,17 +32,24 @@ class JobResult:
     data: Any = None
 
 
-class MainWindowModel(BaseUIModel):
+class MainWindowModel(QObject):
+    importing_channel: Signal = Signal(bool)
+    logging_in_channel: Signal = Signal(bool)
+    captcha_path_channel: Signal = Signal(pathlib.Path)
+    status_channel: Signal = Signal(str)
+    job_result_channel: Signal = Signal(JobResult)
+
     def __init__(self, config_path: pathlib.Path) -> None:
         super().__init__()
         self._qthread: Optional[QThread] = None
+        self._worker: Optional[LogInWorker] = None
         self._in_progress: bool = False
         self._logging_in: bool = False
         self._status: str = ''
-        self.job_result: JobResult = JobResult(JobResultCode.UNSET)
-        self.captcha: str = ''
         self._captcha_path: Optional[pathlib.Path] = None
-        self.captcha_lock: threading.Lock = threading.Lock()
+        self._job_result: JobResult = JobResult(JobResultCode.UNSET)
+
+        self.job_result_channel.connect(self.on_job_result_changed_from_task)
 
         self.config: Optional[sdk.Config] = None
         self.config_path: pathlib.Path = config_path
@@ -65,30 +70,6 @@ class MainWindowModel(BaseUIModel):
                 google_api_private_key='',
                 attendance_report_sheet_links=list())
             self.config.save(config_path)
-
-    @property
-    def in_progress(self) -> bool:
-        return self._in_progress
-
-    @in_progress.setter
-    def in_progress(self, value: bool) -> None:
-        self._in_progress = value
-
-    @property
-    def logging_in(self) -> bool:
-        return self._logging_in
-
-    @logging_in.setter
-    def logging_in(self, value: bool) -> None:
-        self._logging_in = value
-
-    @property
-    def status(self) -> str:
-        return self._status
-
-    @status.setter
-    def status(self, value: str) -> None:
-        self._status = value
 
     @property
     def account(self) -> str:
@@ -146,169 +127,243 @@ class MainWindowModel(BaseUIModel):
     def attendance_report_sheet_links(self, value: list[sdk.AttendanceReportSheetLink]) -> None:
         self.config.attendance_report_sheet_links = value
 
-    @property
-    def captcha_path(self) -> pathlib.Path:
-        return self._captcha_path
-
-    @captcha_path.setter
-    def captcha_path(self, value: pathlib.Path) -> None:
-        self._captcha_path = value
-
     def save(self) -> None:
         self.config.save(self.config_path)
 
-    def start(self) -> None:
+    def send_captcha(self, captcha: str) -> None:
+        if self._worker:
+            self._worker.captcha = captcha
+
+    def import_(self) -> None:
         if self._qthread:
             sdk.get_logger(__package__).info('Another task is already running')
-            self.status = '另一項工作正在執行中'
+            self.status_channel.emit('另一項工作正在執行中')
             return
-        self.in_progress = True
+        self.importing_channel.emit(True)
         sdk.get_logger(__package__).info('Importing ...')
-        self.status = '開始匯入點名資料 ...'
-        self._qthread = Start(self)
-        self._qthread.status.connect(self.on_status_updated)
-        self._qthread.finished.connect(self.on_start_finished)
-        self.job_result = JobResult(JobResultCode.UNSET)
+        self.status_channel.emit('開始匯入點名資料 ...')
+
+        self._job_result = JobResult(JobResultCode.UNSET)
+        self._qthread = QThread()
+        self._qthread.finished.connect(self.on_import_finished)
         self._qthread.start()
+        self._worker: ImportWorker = ImportWorker(
+            self.config, self.job_result_channel, self.status_channel, self.captcha_path_channel)
+        self._worker.moveToThread(self._qthread)
+        self._worker.start_signal.emit()
+        self._qthread.exec()
 
-    def on_status_updated(self, status: str) -> None:
-        self.status = status
-
-    def on_start_finished(self) -> None:
-        self.in_progress = False
-        sdk.get_logger(__package__).info('Imported' if self.job_result.code > 0 else 'Failed to import')
-        self.status = f'匯入「{"成功" if self.job_result.code > 0 else "失敗"}」'
+    def on_import_finished(self) -> None:
+        self.importing_channel.emit(False)
+        sdk.get_logger(__package__).info('Imported' if self._job_result.code > 0 else 'Failed to import')
+        self.status_channel.emit(f'匯入「{"成功" if self._job_result.code > 0 else "失敗"}」')
         self._qthread = None
-        self.captcha = ''
-        self.captcha_path = None
-        self.job_result = JobResult(JobResultCode.UNSET)
+        self._worker = None
+        self.captcha_path_channel.emit('')
+        self._job_result = JobResult(JobResultCode.UNSET)
 
-    def stop(self) -> None:
+    def stop_importing(self) -> None:
         sdk.get_logger(__package__).info('Stop importing ...')
-        self.status = '停止匯入點名資料 ...'
+        self.status_channel.emit('停止匯入點名資料 ...')
         if self._qthread:
             self._qthread.terminate()
             self._qthread = None
-            self.captcha = ''
-            self.captcha_path = None
-            self.job_result = JobResult(JobResultCode.UNSET)
+            self._worker = None
+            self.captcha_path_channel.emit('')
+            self._job_result = JobResult(JobResultCode.UNSET)
 
     def log_in(self) -> None:
         if self._qthread:
             sdk.get_logger(__package__).info('Another task is already running')
-            self.status = '另一項工作正在執行中'
+            self.status_channel.emit('另一項工作正在執行中')
             return
-        self.logging_in = True
+        self.logging_in_channel.emit(True)
         sdk.get_logger(__package__).info('Logging in ...')
-        self.status = '開始登入 ...'
-        self._qthread = LogIn(self)
-        self._qthread.status.connect(self.on_status_updated)
+        self.status_channel.emit('開始登入 ...')
+
+        self._job_result = JobResult(JobResultCode.UNSET)
+        self._qthread = QThread()
         self._qthread.finished.connect(self.on_log_in_finished)
-        self.job_result = JobResult(JobResultCode.UNSET)
         self._qthread.start()
+        self._worker: LogInWorker = LogInWorker(
+            self.config, self.job_result_channel, self.status_channel, self.captcha_path_channel)
+        self._worker.moveToThread(self._qthread)
+        self._worker.start_signal.emit()
+        self._qthread.exec()
 
     def on_log_in_finished(self) -> None:
-        self.logging_in = False
-        sdk.get_logger(__package__).info('Logged in' if self.job_result.code > 0 else 'Failed to log in')
-        self.status = f'登入「{"成功" if self.job_result.code > 0 else "失敗"}」'
+        self.logging_in_channel.emit(False)
+        sdk.get_logger(__package__).info('Logged in' if self._job_result.code > 0 else 'Failed to log in')
+        self.status_channel.emit(f'登入「{"成功" if self._job_result.code > 0 else "失敗"}」')
         self._qthread = None
-        self.captcha = ''
-        self.captcha_path = None
-        self.job_result = JobResult(JobResultCode.UNSET)
+        self._worker = None
+        self.captcha_path_channel.emit('')
+        self._job_result = JobResult(JobResultCode.UNSET)
 
-    def on_captcha_got(self, captcha_path: pathlib.Path) -> str:
-        self.captcha_path = captcha_path
-        while True:
-            with self.captcha_lock:
-                if self.captcha:
-                    return self.captcha
+    def on_job_result_changed_from_task(self, job_result: JobResult) -> None:
+        if job_result.code == JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER:
+            self.status_channel.emit('無法啟動瀏覽器')
+        elif job_result.code == JobResultCode.UNABLE_TO_LOG_IN:
+            self.status_channel.emit('無法登入')
+        elif job_result.code == JobResultCode.UNABLE_TO_ROLL_CALL:
+            self.status_channel.emit(f'無法匯入出席狀況')
+        elif job_result.code == JobResultCode.UNABLE_TO_GET_MEMBER_LIST:
+            self.status_channel.emit(f'無法取得福智學員平臺名單')
+        elif job_result.code == JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET:
+            self.status_channel.emit(f'無法讀取「{job_result.data}」出勤結果表')
+        elif job_result.code == JobResultCode.UNABLE_TO_GET_CLASS_DATE:
+            self.status_channel.emit('無法取得上課時間')
+        elif job_result.code == JobResultCode.NO_LECTURE_TO_ROLL_CALL:
+            self.status_channel.emit('無上課時程表，不須點名')
+        self._job_result = job_result
+        if self._qthread:
+            try:
+                self._qthread.quit()
+            except Exception as e:
+                sdk.get_logger(__package__).exception(e)
+
+
+class LogInWorker(QObject):
+    start_signal: Signal = Signal()
+
+    @property
+    def captcha(self) -> str:
+        self._captcha_mutex.lock()
+        captcha: str = self._captcha
+        self._captcha_mutex.unlock()
+        return captcha
+
+    @captcha.setter
+    def captcha(self, captcha: str) -> None:
+        self._captcha_mutex.lock()
+        self._captcha = captcha
+        self._captcha_mutex.unlock()
+
+    def on_captcha_image_downloaded(self, path: pathlib.Path) -> str:
+        self.captcha_path_channel.emit(path)
+        while not self.captcha:
             time.sleep(0.1)
+        return self.captcha
 
     def on_captcha_sent(self) -> None:
-        self.captcha_path = None
+        self.captcha_path_channel.emit('')
 
-
-class Start(QThread):
-    # https://stackoverflow.com/a/36561787/1592410
-    status: Signal = Signal(str)
-
-    def __init__(self, main_window_model: MainWindowModel, *args, **kwargs) -> None:
+    def __init__(
+            self,
+            config: sdk.Config,
+            job_result_channel: Signal,
+            status_channel: Signal,
+            captcha_path_channel: Signal,
+            *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.main_window_model: MainWindowModel = main_window_model
-        self.config: sdk.Config = main_window_model.config
+        self.config: sdk.Config = config
+        self.job_result_channel: Signal = job_result_channel
+        self.status_channel: Signal = status_channel
+        self.captcha_path_channel: Signal = captcha_path_channel
+        self._captcha: str = ''
+        self._captcha_mutex: QMutex = QMutex()
+
+        self.start_signal.connect(self.run)
+
+    def run(self) -> None:
+        sbwcp: Optional[sdk.SimpleBlissWisdomCommitteePlatform] = None
+        try:
+            try:
+                sbwcp = sdk.SimpleBlissWisdomCommitteePlatform(self.config)
+            except Exception:
+                sdk.get_logger(__package__).info('Unable to launch the browser')
+                self.job_result_channel.emit(JobResult(JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER))
+                raise
+
+            try:
+                sbwcp.log_in(self.on_captcha_image_downloaded, self.on_captcha_sent)
+            except Exception:
+                sdk.get_logger(__package__).info('Unable to log in')
+                self.job_result_channel.emit(JobResult(JobResultCode.UNABLE_TO_LOG_IN))
+                raise
+        except Exception as e:
+            sdk.get_logger(__package__).exception(e)
+        else:
+            self.job_result_channel.emit(JobResult(JobResultCode.SUCCEEDED))
+        finally:
+            time.sleep(3)
+            try:
+                if sbwcp:
+                    sbwcp.quit()
+            except Exception as e:
+                sdk.get_logger(__package__).exception(e)
+
+
+class ImportWorker(LogInWorker):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
     def on_member_roll_called(self, member: sdk.RollCallListMember) -> None:
         sdk.get_logger(__package__).info(f'{member=}')
-        self.status.emit(f'{member.group_number}-{member.name}：{member.state.value if member.state else "無資料"}')
+        self.status_channel.emit(
+            f'{member.group_number}-{member.name}：{member.state if member.state else "無資料"}')
 
     def run(self) -> None:
         try:
             try:
                 sbwcp: sdk.SimpleBlissWisdomCommitteePlatform = sdk.SimpleBlissWisdomCommitteePlatform(self.config)
             except Exception:
-                sdk.get_logger(__package__).info('Unable to launch the browser')
-                self.status.emit('無法啟動瀏覽器')
-                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER)
+                self.job_result_channel.emit(JobResult(JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER))
                 raise
 
             try:
                 sdk.get_logger(__package__).info('Logging in ...')
-                self.status.emit('登入 ...')
-                sbwcp.log_in(self.main_window_model.on_captcha_got, self.main_window_model.on_captcha_sent)
+                self.status_channel.emit('登入 ...')
+                sbwcp.log_in(self.on_captcha_image_downloaded, self.on_captcha_sent)
             except Exception:
                 sdk.get_logger(__package__).info('Unable to log in')
-                self.status.emit('無法登入')
-                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_LOG_IN)
+                self.job_result_channel.emit(JobResult(JobResultCode.UNABLE_TO_LOG_IN))
                 raise
 
             try:
                 sdk.get_logger(__package__).info('Detecting the class date ...')
-                self.status.emit('偵測上課時間 ...')
+                self.status_channel.emit('偵測上課時間 ...')
                 date: datetime.date = sbwcp.get_activated_roll_call_class_date()
             except sdk.NoLectureToRollCallError:
                 sdk.get_logger(__package__).info('No lecture to roll call')
-                self.status.emit('無上課時程表，不須點名')
-                self.main_window_model.job_result = JobResult(JobResultCode.NO_LECTURE_TO_ROLL_CALL)
+                self.job_result_channel.emit(JobResult(JobResultCode.NO_LECTURE_TO_ROLL_CALL))
                 raise
             except Exception:
                 sdk.get_logger(__package__).info('Unable to get the class date')
-                self.status.emit('無法取得上課時間')
-                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_CLASS_DATE)
+                self.job_result_channel.emit(JobResult(JobResultCode.UNABLE_TO_GET_CLASS_DATE))
                 raise
 
             attendance_records: list[sdk.AttendanceRecord] = list()
             arsl: sdk.AttendanceReportSheetLink
-            for arsl in self.main_window_model.attendance_report_sheet_links:
+            for arsl in self.config.attendance_report_sheet_links:
                 if not arsl.link:
                     continue
                 try:
                     sdk.get_logger(__package__).info(f'Obtaining the member statuses of group {arsl.note} ...')
-                    self.status.emit(f'取得「{arsl.note}」出席狀況 ...')
+                    self.status_channel.emit(f'取得「{arsl.note}」出席狀況 ...')
                     attendance_records += sdk.AttendanceSheetParserBuilder(
                         link=arsl.link, google_api_private_key_id=self.config.google_api_private_key_id,
                         google_api_private_key=self.config.google_api_private_key).build() \
                         .get_attendance_records_by_date(date)
+                    time.sleep(1)
                 except googleapiclient.errors.HttpError:
                     sdk.get_logger(__package__).info('Unable to read the attendance sheet')
-                    self.status.emit(f'無法讀取「{arsl.note}」出勤結果表')
-                    self.main_window_model.job_result = JobResult(
-                        code=JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET,
-                        data=arsl.note)
+                    self.job_result_channel.emit(JobResult(
+                        code=JobResultCode.UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET, data=arsl.note))
                     raise
                 except sdk.NoRelevantStatusError:
                     sdk.get_logger(__package__).info('No data of the date in the attendance sheet')
-                    self.status.emit(f'「{arsl.note}」無本次上課出席記錄')
+                    self.status_channel.emit(f'「{arsl.note}」無本次上課出席記錄')
             sdk.get_logger(__package__).info(f'{attendance_records=}')
 
             try:
                 sdk.get_logger(__package__).info('Obtaining the member list on the committee platform ...')
-                self.status.emit('取得學員平臺學員名單 ...')
+                self.status_channel.emit('取得學員平臺學員名單 ...')
                 roll_call_list_members: list[sdk.RollCallListMember] = \
                     sbwcp.get_activated_roll_call_list_members(no_state=True)
             except Exception:
                 sdk.get_logger(__package__).info('Unable to obtain the roll call list')
-                self.status.emit(f'無法取得福智學員平臺名單')
-                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_GET_MEMBER_LIST)
+                self.job_result_channel.emit(JobResult(JobResultCode.UNABLE_TO_GET_MEMBER_LIST))
                 raise
             sdk.get_logger(__package__).info(f'{roll_call_list_members=}')
 
@@ -320,7 +375,7 @@ class Start(QThread):
             for record in attendance_records:
                 state: sdk.RollCallState = sdk.RollCallState.PRESENT if \
                     record.state in [sdk.AttendanceState.IN_PERSON, sdk.AttendanceState.ONLINE] else \
-                    sdk.RollCallState(record.state.value)
+                    sdk.RollCallState(record.state)
                 key: str = f'{record.group_number}-{record.name}'
                 if key in gnum_name_member_dict:
                     gnum_name_member_dict[key].state = state
@@ -329,8 +384,7 @@ class Start(QThread):
                 sbwcp.roll_call(roll_call_list_members, self.on_member_roll_called)
             except Exception:
                 sdk.get_logger(__package__).info('Unable to roll call')
-                self.status.emit(f'無法匯入出席狀況')
-                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_ROLL_CALL)
+                self.job_result_channel.emit(JobResult(JobResultCode.UNABLE_TO_ROLL_CALL))
                 raise
 
             attendance_list_group_number_name_set: set[str] = set(
@@ -344,59 +398,18 @@ class Start(QThread):
                 roll_call_list_group_number_name_set - attendance_list_group_number_name_set
             if members_not_on_the_platform:
                 sdk.get_logger(__package__).info(f'{members_not_on_the_platform=}')
-                self.main_window_model.status = \
-                    f'不在點名系統的人員：{", ".join(sorted(list(members_not_on_the_platform)))}'
+                self.status_channel.emit(f'不在點名系統的人員：{", ".join(sorted(list(members_not_on_the_platform)))}')
             if members_not_on_the_attendance_feedback:
                 sdk.get_logger(__package__).info(f'{members_not_on_the_attendance_feedback=}')
-                self.main_window_model.status = \
-                    f'不在出席記錄試算表的人員：{", ".join(sorted(list(members_not_on_the_attendance_feedback)))}'
+                self.status_channel.emit(
+                    f'不在出席記錄試算表的人員：{", ".join(sorted(list(members_not_on_the_attendance_feedback)))}')
         except Exception as e:
             sdk.get_logger(__package__).exception(e)
         else:
-            self.main_window_model.job_result = JobResult(JobResultCode.SUCCEEDED)
+            self.job_result_channel.emit(JobResult(JobResultCode.SUCCEEDED))
         finally:
             time.sleep(3)
             try:
                 sbwcp.quit()
-            except Exception as e:
-                sdk.get_logger(__package__).exception(e)
-
-
-class LogIn(QThread):
-    # https://stackoverflow.com/a/36561787/1592410
-    status: Signal = Signal(str)
-
-    def __init__(self, main_window_model: MainWindowModel, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.main_window_model: MainWindowModel = main_window_model
-        self.config: sdk.Config = main_window_model.config
-
-    def run(self) -> None:
-        sbwcp: Optional[sdk.SimpleBlissWisdomCommitteePlatform] = None
-        try:
-            try:
-                sbwcp = sdk.SimpleBlissWisdomCommitteePlatform(self.config)
-            except Exception:
-                sdk.get_logger(__package__).info('Unable to launch the browser')
-                self.status.emit('無法啟動瀏覽器')
-                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_INITIALIZE_WEB_DRIVER)
-                raise
-
-            try:
-                sbwcp.log_in(self.main_window_model.on_captcha_got, self.main_window_model.on_captcha_sent)
-            except Exception:
-                sdk.get_logger(__package__).info('Unable to log in')
-                self.status.emit('無法登入')
-                self.main_window_model.job_result = JobResult(JobResultCode.UNABLE_TO_LOG_IN)
-                raise
-        except Exception as e:
-            sdk.get_logger(__package__).exception(e)
-        else:
-            self.main_window_model.job_result = JobResult(JobResultCode.SUCCEEDED)
-        finally:
-            time.sleep(3)
-            try:
-                if sbwcp:
-                    sbwcp.quit()
             except Exception as e:
                 sdk.get_logger(__package__).exception(e)

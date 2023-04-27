@@ -29,10 +29,10 @@ class QMainWindowExt(QMainWindow):
 
     def set_up(self, model: ui_model.MainWindowModel) -> None:
         self.main_window_model: ui_model.MainWindowModel = model
-        self.main_window_model.add_on_changed_observer(self.on_in_progress_changed, 'in_progress')
-        self.main_window_model.add_on_changed_observer(self.on_logging_in_changed, 'logging_in')
-        self.main_window_model.add_on_changed_observer(self.on_status_changed, 'status')
-        self.main_window_model.add_on_changed_observer(self.on_captcha_path_changed, 'captcha_path')
+        self.main_window_model.logging_in_channel.connect(self.on_logging_in_changed)
+        self.main_window_model.importing_channel.connect(self.on_importing_changed)
+        self.main_window_model.status_channel.connect(self.on_status_changed)
+        self.main_window_model.captcha_path_channel.connect(self.on_captcha_path_changed)
 
         self.setWindowTitle(f'{sdk.PROG_NAME} {sdk.VERSION}')
 
@@ -119,16 +119,16 @@ class QMainWindowExt(QMainWindow):
         self.start_push_button.setEnabled(not enabled)
         self.log_in_push_button.setEnabled(not enabled)
 
-    def set_in_progress(self, in_progress: bool) -> None:
-        self.edit_push_button.setEnabled(not in_progress)
-        self.start_push_button.setEnabled(not in_progress)
-        self.stop_push_button.setEnabled(in_progress)
-        self.log_in_push_button.setEnabled(not in_progress)
+    def set_importing(self, importing: bool) -> None:
+        self.edit_push_button.setEnabled(not importing)
+        self.start_push_button.setEnabled(not importing)
+        self.stop_push_button.setEnabled(importing)
+        self.log_in_push_button.setEnabled(not importing)
 
-    def set_logging_in(self, in_progress: bool) -> None:
-        self.edit_push_button.setEnabled(not in_progress)
-        self.start_push_button.setEnabled(not in_progress)
-        self.log_in_push_button.setEnabled(not in_progress)
+    def set_logging_in(self, logging_in: bool) -> None:
+        self.edit_push_button.setEnabled(not logging_in)
+        self.start_push_button.setEnabled(not logging_in)
+        self.log_in_push_button.setEnabled(not logging_in)
 
     def on_edit_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Edit clicked')
@@ -159,11 +159,11 @@ class QMainWindowExt(QMainWindow):
 
     def on_start_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Start clicked')
-        self.main_window_model.start()
+        self.main_window_model.import_()
 
     def on_stop_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Stop clicked')
-        self.main_window_model.stop()
+        self.main_window_model.stop_importing()
 
     def on_log_in_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Log in clicked')
@@ -171,18 +171,17 @@ class QMainWindowExt(QMainWindow):
 
     def on_send_captcha_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Send captcha clicked')
-        with self.main_window_model.captcha_lock:
-            self.main_window_model.captcha = self.captcha_line_edit.text()
+        self.main_window_model.send_captcha(self.captcha_line_edit.text())
 
     def on_help_push_button_clicked(self) -> None:
         sdk.get_logger(__package__).info('Help clicked')
         webbrowser.open('https://github.com/changyuheng/blisswisdom-roll-call-assistant/issues')
 
-    def on_in_progress_changed(self, value: bool) -> None:
-        self.set_in_progress(value)
-
     def on_logging_in_changed(self, value: bool) -> None:
         self.set_logging_in(value)
+
+    def on_importing_changed(self, value: bool) -> None:
+        self.set_importing(value)
 
     def on_status_changed(self, value: str) -> None:
         self.status_plain_text_edit.moveCursor(QTextCursor.End)
@@ -198,9 +197,9 @@ class QMainWindowExt(QMainWindow):
             self.captcha_label.setPixmap(QPixmap(value))
             self.send_captcha_push_button.setEnabled(True)
             self.captcha_line_edit.setEnabled(True)
-            self.activateWindow()
-            self.raise_()
             self.captcha_line_edit.setFocus()
+            self.raise_()
+            self.activateWindow()
 
     def on_attendance_report_sheet_links_editing_finished(
             self, editor: QWidget,

@@ -17,7 +17,7 @@ class UnsupportedSheetError(ValueError):
     pass
 
 
-class AttendanceState(enum.Enum):
+class AttendanceState(enum.StrEnum):
     IN_PERSON: str = '現場'
     ONLINE: str = '線上'
     LEAVE: str = '請假'
@@ -62,11 +62,11 @@ class AttendanceSheetHelper:
         value: str = text.strip()
         state: AttendanceState
         for state in AttendanceState:
-            if value.startswith(state.value):
-                value = value[:len(state.value)]
+            if value.startswith(state):
+                value = value[:len(state)]
                 break
         else:
-            value = AttendanceState.UNKNOWN.value
+            value = AttendanceState.UNKNOWN
         return value
 
 

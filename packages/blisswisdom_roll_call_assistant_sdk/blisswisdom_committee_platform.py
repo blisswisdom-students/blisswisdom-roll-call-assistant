@@ -30,7 +30,7 @@ from .log import get_logger
 from .util import get_entry_file_path
 
 
-class RollCallState(enum.Enum):
+class RollCallState(enum.StrEnum):
     PRESENT: str = '出席'
     LEAVE: str = '請假'
     ABSENT: str = '未出席'
@@ -123,7 +123,7 @@ class BlissWisdomCommitteePlatformElement(enum.Enum):
             f'/input[@value="{state_value}"]/parent::div/parent::div'
 
 
-class BlissWisdomCommitteePlatformPage(enum.Enum):
+class BlissWisdomCommitteePlatformPage(enum.StrEnum):
     LOGIN: str = 'https://pw.blisswisdom.org/'
     HOME: str = 'https://pw.blisswisdom.org/#/HomePage'
     FORMAL_CLASS_ROLL_CALL: str = 'https://pw.blisswisdom.org/#/School/RollCall'
@@ -198,8 +198,11 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
         self.config: Config = config
         self.web_driver.maximize_window()
 
-    def log_in(self, on_captcha_got: Callable[[pathlib.Path], str], on_captcha_sent: Callable[[None], None]) -> None:
-        self.web_driver.get(BlissWisdomCommitteePlatformPage.LOGIN.value)
+    def log_in(
+            self,
+            on_captcha_image_downloaded: Callable[[pathlib.Path], str],
+            on_captcha_sent: Callable[[None], None]) -> None:
+        self.web_driver.get(BlissWisdomCommitteePlatformPage.LOGIN)
 
         login_page_helper: LoginPageHelper = LoginPageHelper(self.web_driver, self.action_timeout)
         login_page_helper.input_account(self.config.account)
@@ -210,7 +213,7 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
         f_path: str
         (fd, f_path) = tempfile.mkstemp(suffix='.png')
         os.write(fd, base64.b64decode(img_base64))
-        captcha: str = on_captcha_got(pathlib.Path(f_path))
+        captcha: str = on_captcha_image_downloaded(pathlib.Path(f_path))
         os.close(fd)
         os.remove(f_path)
 
@@ -222,7 +225,7 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
             raise UnableToLogInError
 
     def go_to_activated_roll_call_page(self) -> None:
-        self.web_driver.get(BlissWisdomCommitteePlatformPage.FORMAL_CLASS_ROLL_CALL.value)
+        self.web_driver.get(BlissWisdomCommitteePlatformPage.FORMAL_CLASS_ROLL_CALL)
 
         roll_call_page_helper: RollCallPageHelper = RollCallPageHelper(self.web_driver, self.action_timeout)
         roll_call_page_helper.choose_class(self.config.class_name)

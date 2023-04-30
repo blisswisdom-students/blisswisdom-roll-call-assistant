@@ -50,6 +50,7 @@ class BlissWisdomCommitteePlatformElement(enum.Enum):
     PASSWORD_INPUT_BOX: tuple[str, str] = (By.XPATH, '//input[@placeholder="請輸入密碼"]')
     CAPTCHA_INPUT_BOX: tuple[str, str] = (By.XPATH, '//input[@placeholder="請輸入圖片中之文字"]')
     CAPTCHA_IMAGE: tuple[str, str] = (By.XPATH, '//img[contains(@src, ";base64,")]')
+    CAPTCHA_WRONG_NOTICE: tuple[str, str] = (By.XPATH, '//div[text()="驗證碼錯誤，請重新輸入!!"]')
     LOGIN_BUTTON: tuple[str, str] = (By.XPATH, '//button[contains(span, "登入")]')
     LOGOUT_BUTTON: tuple[str, str] = (By.XPATH, '//a[@class="logoutBtn"]')
     CLASS_MANAGEMENT_SIDE_MENU: tuple[str, str] = (By.XPATH, '//div[@class="q-item-label" and text()="班級管理"')
@@ -129,6 +130,14 @@ class BlissWisdomCommitteePlatformPage(enum.StrEnum):
     FORMAL_CLASS_ROLL_CALL: str = 'https://pw.blisswisdom.org/#/School/RollCall'
 
 
+class NoCaptchaInputError(ValueError):
+    pass
+
+
+class TooManyWrongCaptchaError(ValueError):
+    pass
+
+
 class UnableToLogInError(RuntimeError):
     pass
 
@@ -201,25 +210,35 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
     def log_in(
             self,
             on_captcha_image_downloaded: Callable[[pathlib.Path], str],
-            on_captcha_sent: Callable[[None], None]) -> None:
-        self.web_driver.get(BlissWisdomCommitteePlatformPage.LOGIN)
+            on_captcha_sent: Callable[[bool], None]) -> None:
+        for _ in range(5):
+            self.web_driver.get(BlissWisdomCommitteePlatformPage.LOGIN)
 
-        login_page_helper: LoginPageHelper = LoginPageHelper(self.web_driver, self.action_timeout)
-        login_page_helper.input_account(self.config.account)
-        login_page_helper.input_password(self.config.password)
+            login_page_helper: LoginPageHelper = LoginPageHelper(self.web_driver, self.action_timeout)
+            login_page_helper.input_account(self.config.account)
+            login_page_helper.input_password(self.config.password)
 
-        img_base64: str = login_page_helper.get_captcha_base64_image()
-        fd: int
-        f_path: str
-        (fd, f_path) = tempfile.mkstemp(suffix='.png')
-        os.write(fd, base64.b64decode(img_base64))
-        captcha: str = on_captcha_image_downloaded(pathlib.Path(f_path))
-        os.close(fd)
-        os.remove(f_path)
+            img_base64: str = login_page_helper.get_captcha_base64_image()
+            fd: int
+            f_path: str
+            (fd, f_path) = tempfile.mkstemp(suffix='.png')
+            os.write(fd, base64.b64decode(img_base64))
+            captcha: str = on_captcha_image_downloaded(pathlib.Path(f_path))
+            os.close(fd)
+            os.remove(f_path)
 
-        login_page_helper.input_captcha(captcha)
-        login_page_helper.click_login_button()
-        on_captcha_sent()
+            if not captcha:
+                raise NoCaptchaInputError
+
+            login_page_helper.input_captcha(captcha)
+            login_page_helper.click_login_button()
+
+            if not login_page_helper.is_captcha_wrong():
+                on_captcha_sent(True)
+                break
+            on_captcha_sent(False)
+        else:
+            raise TooManyWrongCaptchaError
 
         if not login_page_helper.is_logged_in():
             raise UnableToLogInError
@@ -278,6 +297,8 @@ class LoginPageHelper(PageHelper):
 
     def input_captcha(self, captcha: str) -> None:
         WebDriverWait(self.web_driver, self.action_timeout).until(
+            EC.element_to_be_clickable(BlissWisdomCommitteePlatformElement.CAPTCHA_INPUT_BOX.value)).clear()
+        WebDriverWait(self.web_driver, self.action_timeout).until(
             EC.element_to_be_clickable(BlissWisdomCommitteePlatformElement.CAPTCHA_INPUT_BOX.value)).send_keys(captcha)
 
     def click_login_button(self) -> None:
@@ -288,6 +309,14 @@ class LoginPageHelper(PageHelper):
         return WebDriverWait(self.web_driver, self.action_timeout).until(
             EC.element_to_be_clickable(BlissWisdomCommitteePlatformElement.CAPTCHA_IMAGE.value)).get_attribute(
             'src').removeprefix('data:image/png;base64,')
+
+    def is_captcha_wrong(self) -> bool:
+        try:
+            WebDriverWait(self.web_driver, 2).until(
+                EC.element_to_be_clickable(BlissWisdomCommitteePlatformElement.CAPTCHA_WRONG_NOTICE.value))
+            return True
+        except TimeoutException:
+            return False
 
     def is_logged_in(self) -> bool:
         try:

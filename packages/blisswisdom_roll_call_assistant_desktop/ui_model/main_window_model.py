@@ -24,6 +24,8 @@ class JobResultCode(enum.IntEnum):
     UNABLE_TO_GET_MEMBER_LIST: int = -5
     UNABLE_TO_ROLL_CALL: int = -6
     UNABLE_TO_READ_ATTENDANCE_REPORT_SHEET: int = -7
+    NO_CAPTCHA_INPUT: int = -8
+    TOO_MANY_WRONG_CAPTCHA: int = -9
 
 
 @dataclasses.dataclass
@@ -215,6 +217,10 @@ class MainWindowModel(QObject):
             self.status_channel.emit('無法取得上課時間')
         elif job_result.code == JobResultCode.NO_LECTURE_TO_ROLL_CALL:
             self.status_channel.emit('無上課時程表，不須點名')
+        elif job_result.code == JobResultCode.NO_CAPTCHA_INPUT:
+            self.status_channel.emit('未輸入驗證碼')
+        elif job_result.code == JobResultCode.TOO_MANY_WRONG_CAPTCHA:
+            self.status_channel.emit('驗證碼錯誤次數過多')
         self._job_result = job_result
         if self._qthread:
             try:
@@ -241,12 +247,17 @@ class LogInWorker(QObject):
 
     def on_captcha_image_downloaded(self, path: pathlib.Path) -> str:
         self.captcha_path_channel.emit(path)
-        while not self.captcha:
+        now: float = time.monotonic()
+        while not self.captcha and time.monotonic() - now < 20:
             time.sleep(0.1)
         return self.captcha
 
-    def on_captcha_sent(self) -> None:
+    def on_captcha_sent(self, is_correct: bool) -> None:
+        self.captcha = None
         self.captcha_path_channel.emit('')
+        if not is_correct:
+            sdk.get_logger(__package__).info('Wrong captcha')
+            self.status_channel.emit('驗證碼錯誤，請重新輸入！')
 
     def __init__(
             self,
@@ -277,6 +288,14 @@ class LogInWorker(QObject):
 
             try:
                 sbwcp.log_in(self.on_captcha_image_downloaded, self.on_captcha_sent)
+            except sdk.NoCaptchaInputError:
+                sdk.get_logger(__package__).info('No captcha input')
+                self.job_result_channel.emit(JobResult(JobResultCode.NO_CAPTCHA_INPUT))
+                raise
+            except sdk.TooManyWrongCaptchaError:
+                sdk.get_logger(__package__).info('Input wrong captcha too many times')
+                self.job_result_channel.emit(JobResult(JobResultCode.TOO_MANY_WRONG_CAPTCHA))
+                raise
             except Exception:
                 sdk.get_logger(__package__).info('Unable to log in')
                 self.job_result_channel.emit(JobResult(JobResultCode.UNABLE_TO_LOG_IN))
@@ -315,6 +334,14 @@ class ImportWorker(LogInWorker):
                 sdk.get_logger(__package__).info('Logging in ...')
                 self.status_channel.emit('登入 ...')
                 sbwcp.log_in(self.on_captcha_image_downloaded, self.on_captcha_sent)
+            except sdk.NoCaptchaInputError:
+                sdk.get_logger(__package__).info('No captcha input')
+                self.job_result_channel.emit(JobResult(JobResultCode.NO_CAPTCHA_INPUT))
+                raise
+            except sdk.TooManyWrongCaptchaError:
+                sdk.get_logger(__package__).info('Input wrong captcha too many times')
+                self.job_result_channel.emit(JobResult(JobResultCode.TOO_MANY_WRONG_CAPTCHA))
+                raise
             except Exception:
                 sdk.get_logger(__package__).info('Unable to log in')
                 self.job_result_channel.emit(JobResult(JobResultCode.UNABLE_TO_LOG_IN))

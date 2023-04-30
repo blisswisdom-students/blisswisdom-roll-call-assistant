@@ -187,6 +187,7 @@ class QMainWindowExt(QMainWindow):
         self.status_plain_text_edit.moveCursor(QTextCursor.End)
         self.status_plain_text_edit.insertPlainText(
             f'[{datetime.datetime.now().time().strftime("%H:%M:%S")}] {value}\n')
+        self.status_plain_text_edit.ensureCursorVisible()
 
     def on_captcha_path_changed(self, value: pathlib.Path) -> None:
         self.captcha_label.clear()

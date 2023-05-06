@@ -21,6 +21,7 @@ a = Analysis(
         qt_plugins_path,
         (os.path.join('packages', 'blisswisdom_roll_call_assistant_desktop', 'ui', 'main_window.ui'), os.path.join('blisswisdom_roll_call_assistant_desktop', 'ui')),
         (os.path.join('packages', 'blisswisdom_roll_call_assistant_desktop', 'ui', 'banner.png'), os.path.join('blisswisdom_roll_call_assistant_desktop', 'ui')),
+        (os.path.join('packages', 'blisswisdom_roll_call_assistant_desktop', 'ui', 'icon.icns'), os.path.join('blisswisdom_roll_call_assistant_desktop', 'ui')),
         (os.path.join('packages', 'blisswisdom_roll_call_assistant_desktop', 'ui', 'icon.ico'), os.path.join('blisswisdom_roll_call_assistant_desktop', 'ui'))],
     hiddenimports=[],
     hookspath=[],
@@ -39,29 +40,35 @@ f = open('pyproject.toml', 'rb')
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
     [],
-    exclude_binaries=True,
-    name='福智學員平臺點名助手',
+    name=f'福智學員平臺點名助手-{platform.system()}-v{tomli.load(f)["tool"]["poetry"]["version"]}{".exe" if platform.system() == "Windows" else ""}',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
+    upx_exclude=[],
+    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join('packages', 'blisswisdom_roll_call_assistant_desktop', 'ui', 'icon.ico'),
-)
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=False,
-    upx_exclude=[],
-    name=f'福智學員平臺點名助手-{platform.system()}-v{tomli.load(f)["tool"]["poetry"]["version"]}',
-)
+    icon=os.path.join('packages', 'blisswisdom_roll_call_assistant_desktop', 'ui', 'icon.ico'))
 f.close()
+if platform.system() == 'Darwin':
+    f = open('pyproject.toml', 'rb')
+    app = BUNDLE(
+        exe,
+        name=f'福智學員平臺點名助手-{platform.system()}-v{tomli.load(f)["tool"]["poetry"]["version"]}.app',
+        icon=os.path.join('packages', 'blisswisdom_roll_call_assistant_desktop', 'ui', 'icon.icns'),
+        bundle_identifier='com.blisswisdom',
+        info_plist={
+           'NSPrincipalClass': 'NSApplication',
+           'NSAppleScriptEnabled': False,
+           'CFBundleDocumentTypes': [],
+        })
+    f.close()

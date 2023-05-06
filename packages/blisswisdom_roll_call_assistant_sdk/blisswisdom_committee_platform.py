@@ -27,7 +27,7 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 from .config import Config
 from .log import get_logger
-from .util import get_entry_file_path
+from .util import get_cache_dir
 
 
 class RollCallState(enum.StrEnum):
@@ -161,7 +161,7 @@ class UnableToCompleteRollCallError(RuntimeError):
 class SimpleSelenium:
     def __init__(self, action_timeout: int = 10) -> None:
         self.action_timeout: int = action_timeout
-        self.work_path: pathlib.Path = get_entry_file_path().parent / '_work'
+        self.work_path: pathlib.Path = get_cache_dir() / 'browser-working-directory'
 
         self.clear_work_dir()
         if not self.work_path.is_dir():
@@ -210,6 +210,7 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
     def log_in(
             self,
             on_captcha_image_downloaded: Callable[[pathlib.Path], str],
+            on_captcha_sending: Callable[[], None],
             on_captcha_sent: Callable[[bool], None]) -> None:
         for _ in range(5):
             self.web_driver.get(BlissWisdomCommitteePlatformPage.LOGIN)
@@ -230,6 +231,7 @@ class SimpleBlissWisdomCommitteePlatform(SimpleSelenium):
             if not captcha:
                 raise NoCaptchaInputError
 
+            on_captcha_sending()
             login_page_helper.input_captcha(captcha)
             login_page_helper.click_login_button()
 

@@ -68,8 +68,6 @@ class MainWindowModel(QObject):
                 password='',
                 character='',
                 class_name='',
-                google_api_private_key_id='',
-                google_api_private_key='',
                 attendance_report_sheet_links=list())
             self.config.save(config_path)
 
@@ -252,9 +250,11 @@ class LogInWorker(QObject):
             time.sleep(0.1)
         return self.captcha
 
-    def on_captcha_sent(self, is_correct: bool) -> None:
+    def on_captcha_sending(self) -> None:
         self.captcha = None
         self.captcha_path_channel.emit('')
+
+    def on_captcha_sent(self, is_correct: bool) -> None:
         if not is_correct:
             sdk.get_logger(__package__).info('Wrong captcha')
             self.status_channel.emit('驗證碼錯誤，請重新輸入！')
@@ -287,7 +287,7 @@ class LogInWorker(QObject):
                 raise
 
             try:
-                sbwcp.log_in(self.on_captcha_image_downloaded, self.on_captcha_sent)
+                sbwcp.log_in(self.on_captcha_image_downloaded, self.on_captcha_sending, self.on_captcha_sent)
             except sdk.NoCaptchaInputError:
                 sdk.get_logger(__package__).info('No captcha input')
                 self.job_result_channel.emit(JobResult(JobResultCode.NO_CAPTCHA_INPUT))
@@ -333,7 +333,7 @@ class ImportWorker(LogInWorker):
             try:
                 sdk.get_logger(__package__).info('Logging in ...')
                 self.status_channel.emit('登入 ...')
-                sbwcp.log_in(self.on_captcha_image_downloaded, self.on_captcha_sent)
+                sbwcp.log_in(self.on_captcha_image_downloaded, self.on_captcha_sending, self.on_captcha_sent)
             except sdk.NoCaptchaInputError:
                 sdk.get_logger(__package__).info('No captcha input')
                 self.job_result_channel.emit(JobResult(JobResultCode.NO_CAPTCHA_INPUT))

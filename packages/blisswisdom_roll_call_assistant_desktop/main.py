@@ -13,7 +13,7 @@ from . import ui_model
 
 
 def main() -> int:
-    sdk.init_logger(sdk.get_entry_file_path().parent / f'{sdk.PROG_NAME}-{platform.system()}-v{sdk.VERSION}.log')
+    sdk.init_logger(sdk.get_data_dir() / f'{sdk.PROG_NAME}-{platform.system()}-v{sdk.VERSION}.log')
 
     QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app: QApplication = QApplication(sys.argv)
@@ -29,8 +29,7 @@ def main() -> int:
         main_window: ui.QMainWindowExt = ui_loader.load(ui_file)
         ui_file.close()
 
-    main_window.setWindowFlag(Qt.WindowStaysOnTopHint)
-    main_window.set_up(ui_model.MainWindowModel(sdk.get_entry_file_path().parent / f'{sdk.PROG_NAME}.toml'))
+    main_window.set_up(ui_model.MainWindowModel(sdk.get_config_dir() / f'{sdk.PROG_NAME}.toml'))
     sdk.get_logger(__package__).info('Showing the main window')
     main_window.show()
     res: int = app.exec_()

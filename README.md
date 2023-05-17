@@ -25,7 +25,7 @@ https://user-images.githubusercontent.com/1842626/232291434-848dc53c-09f3-42cd-9
 
 ### 下載
 
-請至[下載頁面](https://github.com/changyuheng/blisswisdom-roll-call-assistant/releases)中下載版本號最大的版本，Windows 用戶請下載含有 Windows 字樣的 `zip` 檔，macOS 用戶請下載含有 Darwin 字樣的 `zip` 檔。
+請至[下載頁面](https://github.com/blisswisdom-students/blisswisdom-roll-call-assistant/releases)中下載版本號最大的版本，Windows 用戶請下載含有 Windows 字樣的 `zip` 檔，macOS 用戶請下載含有 Darwin 字樣的 `zip` 檔。
 
 ### 作業系統及瀏覽器需求
 

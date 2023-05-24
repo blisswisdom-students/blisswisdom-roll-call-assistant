@@ -17,13 +17,13 @@ packages = [
 python = ">=3.10, <3.12"
 charset_normalizer = "<3.0.0"  # for macOS universal2 support
 dacite = "^1.8.0"
+macos-application-location = "^1.0.3"
 pygsheets = "^2.0.6"
 PySide6 = "^6.5.0"
 selenium = "^4.8.3"
 tomli = "^2.0.1"
 tomli-w = "^1.0.0"
 webdriver-manager = "^3.8.5"
-xdg-base-dirs = "^6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pyinstaller = "^5.9.0"

@@ -116,9 +116,9 @@ class AttendanceFormReportSheetParser(BaseAttendanceSheetParser):
     def get_relevant_data_index(self, date: datetime.date) -> int:
         last_relevant_row_index: int
         cell: pygsheets.Cell
-        for cell in self.wks.get_col(
+        for cell in reversed(self.wks.get_col(
                 2, returnas='cells', include_tailing_empty=False,
-                date_time_render_option=pygsheets.DateTimeRenderOption.FORMATTED_STRING)[1:]:
+                date_time_render_option=pygsheets.DateTimeRenderOption.FORMATTED_STRING)[1:]):
             if AttendanceSheetHelper.convert_to_date(cell.value) == date:
                 last_relevant_row_index = cell.row
                 break
